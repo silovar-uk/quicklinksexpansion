@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.14.1",
-  "description": "Log Relayを正式な4モード化。Alt+Shift+Mで直接表示、5ビュー・並び順・一括整理・24時間ゴミ箱に対応",
+  "version": "1.15.0",
+  "description": "Internal Quality版。機能を変えず、Log Relayのデータ責務・一括保存・索引・一時状態・UI基盤・テストを整理",
   "permissions": [
     "sidePanel",
     "storage",
@@ -44,6 +44,7 @@
         "https://*/*"
       ],
       "js": [
+        "shortcut-registry.js",
         "auto-project-rules.js",
         "content-floating-search.js",
         "log-relay-capture.js"
