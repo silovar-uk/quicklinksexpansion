@@ -1,0 +1,57 @@
+:root {
+  --qpl-bg: #f3f4f6;
+  --qpl-surface: #ffffff;
+  --qpl-surface-soft: #f8fafc;
+  --qpl-text: #1f2937;
+  --qpl-text-strong: #0f172a;
+  --qpl-muted: #64748b;
+  --qpl-muted-soft: #94a3b8;
+  --qpl-border: #dbe3ec;
+  --qpl-border-strong: #cbd5e1;
+  --qpl-primary: #2563eb;
+  --qpl-hold: #d97706;
+  --qpl-done: #059669;
+  --qpl-danger: #dc2626;
+  --qpl-radius-sm: 5px;
+  --qpl-radius-md: 8px;
+  --qpl-radius-lg: 10px;
+  --qpl-space-1: 4px;
+  --qpl-space-2: 8px;
+  --qpl-space-3: 12px;
+  --qpl-space-4: 16px;
+  --qpl-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --qpl-shadow-md: 0 3px 10px rgba(15, 23, 42, .08);
+}
+
+/* Four modes are a first-class part of the app, not a Log-only override. */
+.app-mode-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: var(--qpl-space-1) !important;
+  align-items: stretch !important;
+}
+
+.app-mode-tabs .app-mode-btn,
+#log-relay-mode {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 7px 3px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 10px !important;
+  min-height: 34px !important;
+  border-radius: var(--qpl-radius-lg) !important;
+  box-shadow: var(--qpl-shadow-sm) !important;
+}
+
+.app-mode-tabs .app-mode-title {
+  font-size: 10px !important;
+  white-space: nowrap !important;
+}
+
+.app-mode-tabs .app-mode-shortcut {
+  display: none !important;
+}
