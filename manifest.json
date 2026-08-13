@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.0",
-  "description": "Internal Quality版。機能を変えず、Log Relayのデータ責務・一括保存・索引・一時状態・UI基盤・テストを整理",
+  "version": "1.15.1",
+  "description": "Internal Quality hotfix。Alt+Mの直接判定を冗長化し、Log Relay追加UIの起動回帰を修正",
   "permissions": [
     "sidePanel",
     "storage",
