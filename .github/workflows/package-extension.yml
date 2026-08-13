@@ -24,6 +24,12 @@ jobs:
             node --check "$file"
           done < <(find . -type f -name '*.js' -not -path './backup/*' -not -path './dist/*' -print0)
 
+      - name: Run deterministic behavior tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.js
+
       - name: Read extension version
         id: version
         shell: bash
@@ -44,6 +50,7 @@ jobs:
             --exclude '.github/' \
             --exclude 'backup/' \
             --exclude 'dist/' \
+            --exclude 'tests/' \
             --exclude 'icons/Gemini_Generated_Image_*.png' \
             ./ "$package_dir/"
 
