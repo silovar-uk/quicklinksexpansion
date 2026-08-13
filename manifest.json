@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.12.36",
-  "description": "POPでリンク追加後に検索条件を自動クリアし、一覧ですぐ登録結果を確認できるようにした版",
+  "version": "1.13.0",
+  "description": "Log Relayを追加。Alt+Spaceで時刻＋1行メモを保存し、サイドパネル内で未処理・保留・完了を整理できる版",
   "permissions": [
     "sidePanel",
     "storage",
@@ -27,10 +27,10 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-wrapper.js"
   },
   "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_path": "sidepanel-wrapper.html"
   },
   "host_permissions": [
     "http://*/*",
@@ -44,7 +44,8 @@
       ],
       "js": [
         "auto-project-rules.js",
-        "content-floating-search.js"
+        "content-floating-search.js",
+        "log-relay-capture.js"
       ],
       "run_at": "document_idle"
     }
@@ -69,10 +70,13 @@
       "description": "右下POPをPromptタブで開く"
     },
     "quick-links-clear-search": {
-      "suggested_key": {
-        "default": "Alt+4"
-      },
       "description": "検索語をクリアし、現在の検索欄へ移動する"
+    },
+    "quick-links-add-log": {
+      "suggested_key": {
+        "default": "Alt+Space"
+      },
+      "description": "Log Relayへ1行メモを追加する"
     }
   }
 }
