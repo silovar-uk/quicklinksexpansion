@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.13.0",
-  "description": "Log Relayを追加。Alt+Spaceで時刻＋1行メモを保存し、サイドパネル内で未処理・保留・完了を整理できる版",
+  "version": "1.13.1",
+  "description": "Log Relayの追加ショートカットをAlt+Mへ変更。時刻＋1行メモを保存し、サイドパネル内で未処理・保留・完了を整理できる版",
   "permissions": [
     "sidePanel",
     "storage",
@@ -74,7 +74,7 @@
     },
     "quick-links-add-log": {
       "suggested_key": {
-        "default": "Alt+Space"
+        "default": "Alt+M"
       },
       "description": "Log Relayへ1行メモを追加する"
     }
