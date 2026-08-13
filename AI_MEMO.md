@@ -1,196 +1,151 @@
 # AI handoff memo — Quick Project Links / Log Relay
 
 Updated: 2026-08-13
-Version: 1.14.1
+Version: 1.15.0
 
-## Purpose
+## Product rule
 
-Quick Project Links is a personal, deterministic browser tool. Do not turn it into an AI assistant. The design goal is to reduce friction in navigation, capture, and resumption while keeping the user's own judgment in control.
+Quick Project Links is a personal, deterministic browser tool. Do not turn it into an AI assistant unless the user explicitly changes that policy.
 
-Log Relay is a lightweight checkpoint layer inside Quick Links:
+Log Relay follows one rule: **capture now, organize later**.
 
-- Capture now, organize later.
-- Capture stores only the time and a user-written memo.
-- Do not automatically store URL, page title, selected text, tab lists, or AI-generated metadata.
-- Existing logs are visible and editable only inside the Chrome side panel.
-- The capture overlay may show the text being entered, but it must never expose the existing log list on the web page.
+- Capture stores only user-written memo + time/internal state.
+- Do not automatically capture URL, page title, selected text, tab lists, or AI-generated metadata.
+- Existing logs are shown only inside the side panel.
+- Preserve Links / REDS / Prompt behavior unless a request explicitly changes it.
 
 ## Canonical shortcuts
 
-### Capture / open
+- `Alt + M`: add one-line Log Relay memo on a normal web page.
+- `Alt + Shift + M`: open the side panel directly in LOG mode.
+- In LOG mode:
+  - `Alt + Shift + 1`: すべて
+  - `Alt + Shift + 2`: 未処理
+  - `Alt + Shift + 3`: 保留
+  - `Alt + Shift + 4`: 完了
+  - `Alt + Shift + 5`: 削除
 
-- `Alt + M` → add one-line log memo. This is detected directly in `log-relay-capture.js` on normal web pages.
-- `Alt + Shift + M` → open the Chrome side panel and switch directly to LOG. This is the manifest-level Chrome command for Log Relay panel opening.
-- Do not restore `Alt + Space` as a fallback.
+`shortcut-registry.js` is the canonical JavaScript registry for these Log shortcuts and documents the existing legacy Quick Links shortcuts. Do not add a second Log shortcut implementation elsewhere.
 
-Chrome permits at most four manifest-level suggested keyboard shortcuts. The four slots are intentionally used for:
+Chrome allows only four manifest-level suggested command shortcuts. The suggested slots remain Alt+1 / Alt+2 / Alt+3 / Alt+Shift+M. Alt+M is detected directly by the content script; `quick-links-add-log` remains available as a command without a suggested key.
 
-- `Alt + 1`
-- `Alt + 2`
-- `Alt + 3`
-- `Alt + Shift + M`
+## Log states and views
 
-`Alt + M` stays as direct content-script detection because the capture UI itself only exists on normal web pages where the content script is available. `quick-links-add-log` remains as an unsuggested command for optional manual mapping.
+Persistent states:
 
-### LOG view shortcuts
+- `inbox` = 未処理
+- `hold` = 保留
+- `done` = 完了
+- `trash` = 削除
 
-Only while LOG is active:
+Views:
 
-- `Alt + Shift + 1` → すべて
-- `Alt + Shift + 2` → 未処理
-- `Alt + Shift + 3` → 保留
-- `Alt + Shift + 4` → 完了
-- `Alt + Shift + 5` → 削除
+- `all` = inbox + hold + done only
+- `inbox`
+- `hold`
+- `done`
+- `trash`
 
-Existing `Alt + 1 / 2 / 3` behavior for Links / REDS / Prompt must keep working.
+Trash is recoverable for 24 hours. `trashedAt + 24h` is the deletion boundary. Chrome alarms schedule the nearest expiry; startup and initialization also purge expired trash.
 
-## Side-panel modes
+## Storage architecture (v1.15)
 
-The top mode bar is one row with four equal-width modes:
+### Source of truth
 
-- LINKS
-- REDS
-- PROMPT
-- LOG
+Each Log Relay entry remains one `chrome.storage.local` record:
 
-Do not let adding LOG create a second row or increase the mode bar's vertical height. The Log Relay integration CSS intentionally compresses all four mode buttons horizontally.
-
-## Log views and states
-
-Persistent statuses:
-
-- `inbox` → 未処理
-- `hold` → 保留
-- `done` → 完了
-- `trash` → 削除
-
-Display-only view:
-
-- `all` → すべて. Shows inbox + hold + done, but does not mix deleted entries into the normal list.
-
-Default view: 未処理.
-
-The user can:
-
-- change 未処理 / 保留 / 完了 per entry,
-- sort newest-first or oldest-first,
-- select entries with checkboxes,
-- select all visible entries,
-- move selected entries to 削除,
-- move all entries created before today (JST) in the current view to 削除,
-- restore deleted entries to 未処理,
-- permanently delete selected deleted entries,
-- permanently delete a deleted entry individually.
-
-Counts should remain small and visible on the five view tabs and selection toolbar.
-
-## Trash policy
-
-Deleting is a two-stage operation.
-
-1. Normal delete moves an entry to `status: "trash"` and adds `trashedAt`.
-2. A trashed entry is automatically and permanently removed 24 hours after `trashedAt`.
-
-Use `chrome.alarms` in `log-relay-background.js` to schedule the next expiry. Also purge expired trash on startup/install and when the side panel loads, so entries do not survive indefinitely if the browser was closed at the expiry moment.
-
-Manual permanent delete is allowed from the 削除 view.
-
-## Storage schema
-
-Each log uses its own `chrome.storage.local` key to reduce overwrite races between tabs.
-
-Key:
-
-```text
-logRelayEntry:<id>
-```
-
-Value:
+`logRelayEntry:<id>`
 
 ```json
 {
   "id": "lr-...",
   "memo": "自由入力メモ",
-  "status": "inbox | hold | done | trash",
-  "createdAt": "ISO-8601 UTC string",
-  "updatedAt": "ISO-8601 UTC string",
-  "trashedAt": "ISO-8601 UTC string, only while status=trash"
+  "status": "inbox",
+  "createdAt": "ISO-8601",
+  "updatedAt": "ISO-8601",
+  "trashedAt": "ISO-8601 only while status=trash"
 }
 ```
 
-Additional keys:
+### Index
 
-```text
-logRelaySortDirection   // "asc" | "desc"
-logRelayOpenPanelRequest
-```
+`logRelayIndex` contains entry IDs. It is a rebuildable index/cache, not the source of truth. v1.15 rebuilds it from existing entry keys when missing.
 
-Do not migrate Log Relay into the Quick Links `items` array unless the user explicitly asks.
+Do not replace per-entry storage with one giant array without an explicit migration plan.
 
-## Design direction
+### UI preferences
 
-Log Relay should look like a native part of Quick Links, not a quiet secondary plugin.
+`logRelaySortDirection` remains in `chrome.storage.local`.
 
-Keep the current useful typography hierarchy, but use stronger UI rhythm consistent with the rest of Quick Links:
+### Transient open request
 
-- normal cards: white with clearer borders/shadow,
-- selected cards: blue emphasis,
-- 未処理: blue,
-- 保留: amber,
-- 完了: green,
-- 削除: red,
-- すべて: slate,
-- compact counts and controls,
-- avoid excessive vertical expansion.
+`logRelayOpenPanelRequest` uses `chrome.storage.session` when available. It is transient UI coordination and should not be treated as user data. A local-storage fallback exists only for compatibility.
 
-## Integration architecture
+## Mutation ownership
 
-Keep the integration thin:
+**Only `log-relay-background.js` should mutate Log Relay entries.**
 
-- `background-wrapper.js`
-  - loads existing `background.js`
-  - then loads `log-relay-background.js`
-- `sidepanel-wrapper.html` / `sidepanel-wrapper.js`
-  - load the existing `sidepanel.html`
-  - inject `log-relay-panel.js`
-  - preserve existing side-panel implementation as source of truth
-- `log-relay-capture.js`
-  - capture UI
-  - direct `Alt + M`
-  - direct `Alt + Shift + M` fallback panel request on normal web pages
-- `log-relay-panel.js`
-  - fourth mode
-  - five views
-  - sort / selection / bulk actions
-  - LOG-only keyboard view shortcuts
-- `log-relay-background.js`
-  - Chrome command routing
-  - LOG side-panel opening
-  - 24-hour trash expiry scheduling
+Capture and panel code send `logRelayStore` runtime messages. Supported actions:
 
-Prefer additive Log Relay files over invasive rewrites of the large legacy core files.
+- `list`
+- `add`
+- `updateMemo`
+- `moveMany`
+- `deleteMany`
+- `setSort`
+- `rebuildIndex`
 
-## Non-goals
+Bulk changes use one `chrome.storage.local.set()` for entry updates rather than one write per entry. A small in-service-worker mutation queue serializes concurrent Log mutations while the worker is alive.
 
-Do not add without explicit request:
+Do not reintroduce direct `chrome.storage.local.set/remove` calls for Log entries from capture or panel code.
 
-- AI summarization or classification
-- automatic priority scoring
-- project/category assignment on capture
-- URL/page-title capture
-- tab/session restore
-- reminders based on log age
-- Log Relay display in floating POP
-- cloud backends
+## Shared deterministic helpers
+
+- `log-relay-core.js`: normalization, state transitions, 24h expiry, sort, JST day boundary, keys/constants. Also CommonJS-compatible for tests.
+- `shortcut-registry.js`: canonical Log keyboard matching and view mapping. Also CommonJS-compatible for tests.
+- `qpl-design-tokens.css`: shared surface/border/type/spacing/radius/shadow tokens plus the four-mode one-row tab layout.
+
+## Side-panel integration
+
+`sidepanel.html` remains the mature core UI source of truth. `sidepanel-wrapper.js` no longer performs regex replacement of the HTML string. It loads the core page as-is, then attaches:
+
+1. `qpl-design-tokens.css`
+2. `shortcut-registry.js`
+3. `log-relay-core.js`
+4. `log-relay-panel.js`
+
+This keeps the large legacy sidepanel isolated while removing the fragile `source.replace(... </body>)` injection step. A future full merge into `sidepanel.html` is optional; do not do a high-risk rewrite only for aesthetic architecture.
+
+`background-wrapper.js` intentionally remains a simple `importScripts` composition point. It loads shared helpers before the mature background and Log Relay service code.
+
+## UI principles
+
+- Four top modes must fit on one row: Links / REDS / Prompt / LOG.
+- Shared mode buttons use `qpl-design-tokens.css`; Log Relay must not restyle the three other tabs from its private runtime CSS.
+- Preserve the current useful type hierarchy; do not solve density by endlessly shrinking text.
+- In LOG, status/view navigation stays visually strong. Secondary organization actions are quieter and grouped.
+- Bulk action controls appear only when something is selected.
+- Status tabs are sticky inside the LOG scroll area.
+
+## Tests and packaging
+
+GitHub Actions must run, in this order:
+
+1. manifest JSON parse
+2. `node --check` for JavaScript
+3. `node --test tests/*.test.js`
+4. package ZIP
+
+Current tests cover state transitions, trash 24h boundary, sort direction, index normalization, and Alt+Shift+1..5 view mapping.
+
+The installable ZIP excludes `.github`, backup, tests, dist, and large unused Gemini source images.
 
 ## Update workflow for future AI sessions
 
-When updating this repository:
-
-1. Preserve existing Quick Links behavior unless the user explicitly changes it.
-2. Prefer small additive files over rewriting large core JS/HTML.
-3. Validate `manifest.json`.
-4. Run JS syntax checks for every active `.js` file outside `backup/`.
-5. Update this memo when architecture, shortcuts, storage, or UX rules change.
-6. Keep repository version and delivered ZIP version identical.
-7. Always provide the updated extension as a ZIP after implementation.
+1. Preserve behavior unless explicitly asked to change it.
+2. Keep Log entry mutations in background.
+3. Prefer shared core helpers over duplicated logic.
+4. Update tests when state/shortcut behavior changes.
+5. Update this memo when architecture, shortcut, storage schema, or packaging changes.
+6. Run validation before packaging.
+7. Update GitHub and provide the user a ZIP at the exact same version.
