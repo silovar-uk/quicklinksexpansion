@@ -1,0 +1,47 @@
+name: Package extension ZIP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read extension version
+        id: version
+        shell: bash
+        run: echo "version=$(node -p \"require('./manifest.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Build installable ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          package_dir="dist/quicklinksexpansion"
+          mkdir -p "$package_dir"
+
+          rsync -a ./ "$package_dir/" \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'backup/' \
+            --exclude 'dist/' \
+            --exclude 'icons/Gemini_Generated_Image_*.png'
+
+          cd dist
+          zip -qr "quicklinksexpansion-v${version}.zip" quicklinksexpansion
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: quicklinksexpansion-v${{ steps.version.outputs.version }}
+          path: dist/quicklinksexpansion-v${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+          retention-days: 30
