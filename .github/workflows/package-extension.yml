@@ -18,7 +18,9 @@ jobs:
       - name: Read extension version
         id: version
         shell: bash
-        run: echo "version=$(node -p \"require('./manifest.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version="$(node -p "require('./manifest.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Build installable ZIP
         shell: bash
@@ -28,12 +30,13 @@ jobs:
           package_dir="dist/quicklinksexpansion"
           mkdir -p "$package_dir"
 
-          rsync -a ./ "$package_dir/" \
+          rsync -a \
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude 'backup/' \
             --exclude 'dist/' \
-            --exclude 'icons/Gemini_Generated_Image_*.png'
+            --exclude 'icons/Gemini_Generated_Image_*.png' \
+            ./ "$package_dir/"
 
           cd dist
           zip -qr "quicklinksexpansion-v${version}.zip" quicklinksexpansion
