@@ -107,15 +107,26 @@
     requestAnimationFrame(() => input.focus());
   }
 
+  function matchesLogShortcut(event, kind) {
+    const spec = Shortcuts?.registry?.log?.[kind];
+    if (spec && typeof Shortcuts?.matches === 'function' && Shortcuts.matches(event, spec)) return true;
+
+    // v1.15.1 safety fallback: Log Relayの起動を共通レジストリだけに依存させない。
+    // content scriptの読み込み順・古いタブ・将来の共通基盤変更があっても、M系ショートカットを直接判定する。
+    const isM = event.code === 'KeyM' || String(event.key || '').toLowerCase() === 'm';
+    if (!isM || !event.altKey || event.ctrlKey || event.metaKey) return false;
+    return kind === 'open' ? !!event.shiftKey : !event.shiftKey;
+  }
+
   document.addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229 || event.repeat) return;
-    if (Shortcuts?.matches(event, Shortcuts.registry.log.add)) {
+    if (matchesLogShortcut(event, 'add')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       openCapture();
       return;
     }
-    if (Shortcuts?.matches(event, Shortcuts.registry.log.open)) {
+    if (matchesLogShortcut(event, 'open')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       chrome.runtime.sendMessage({ type: MESSAGE_PANEL }).catch(() => {});
