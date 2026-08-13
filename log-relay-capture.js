@@ -4,7 +4,8 @@
   window.__quickLinksLogRelayCaptureLoaded = true;
 
   const ENTRY_PREFIX = 'logRelayEntry:';
-  const MESSAGE_OPEN = 'logRelayOpenCapture';
+  const MESSAGE_OPEN_CAPTURE = 'logRelayOpenCapture';
+  const MESSAGE_OPEN_PANEL = 'logRelayOpenPanel';
   const HOST_ID = 'quick-links-log-relay-capture-host';
   const TOAST_ID = 'quick-links-log-relay-toast-host';
 
@@ -22,6 +23,15 @@
     }).format(date);
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
   function showToast(message) {
     document.getElementById(TOAST_ID)?.remove();
     const host = document.createElement('div');
@@ -35,15 +45,6 @@
       <div class="toast" role="status">${escapeHtml(message)}</div>`;
     (document.documentElement || document.body).appendChild(host);
     setTimeout(() => host.remove(), 1600);
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
   }
 
   async function saveMemo(memo) {
@@ -89,8 +90,9 @@
         .name{color:#334155}
         .row{display:flex;align-items:center;gap:8px}
         input{width:100%;min-width:0;border:0;outline:0;background:#f8fafc;color:#0f172a;border-radius:9px;padding:11px 12px;font:500 14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-shadow:inset 0 0 0 1px #e2e8f0}
-        input:focus{background:#fff;box-shadow:inset 0 0 0 2px #94a3b8}
-        button{flex:0 0 auto;border:0;border-radius:9px;background:#0f172a;color:#fff;padding:10px 13px;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+        input:focus{background:#fff;box-shadow:inset 0 0 0 2px #64748b}
+        button{flex:0 0 auto;border:0;border-radius:9px;background:#1e293b;color:#fff;padding:10px 13px;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+        button:hover{background:#0f172a}
         .hint{margin:7px 3px 0;color:#94a3b8;font-size:10px;line-height:1.35}
         kbd{font:600 9px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#eef2f7;border:1px solid #dbe3ec;border-bottom-color:#cbd5e1;border-radius:4px;color:#64748b;padding:2px 4px}
       </style>
@@ -122,7 +124,7 @@
       }
     };
 
-    input.addEventListener('keydown', (event) => {
+    input.addEventListener('keydown', event => {
       if (event.isComposing || event.keyCode === 229) return;
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -133,28 +135,36 @@
       }
     });
     button.addEventListener('click', submit);
-    shadow.querySelector('.relay').addEventListener('mousedown', (event) => event.stopPropagation());
+    shadow.querySelector('.relay').addEventListener('mousedown', event => event.stopPropagation());
 
     (document.documentElement || document.body).appendChild(host);
     requestAnimationFrame(() => input.focus());
   }
 
-  document.addEventListener('keydown', (event) => {
+  document.addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229 || event.repeat) return;
-    const isAltM = event.altKey
-      && !event.ctrlKey
-      && !event.metaKey
-      && !event.shiftKey
-      && (event.code === 'KeyM' || String(event.key || '').toLowerCase() === 'm');
-    if (!isAltM) return;
+    const isM = event.code === 'KeyM' || String(event.key || '').toLowerCase() === 'm';
+
+    const isOpenPanel = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && isM;
+    if (isOpenPanel) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      chrome.runtime.sendMessage({ type: MESSAGE_OPEN_PANEL }).catch(error => {
+        console.info('[Log Relay] サイドパネル表示要求に失敗しました。', error);
+      });
+      return;
+    }
+
+    const isCapture = event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && isM;
+    if (!isCapture) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     openCapture();
   }, true);
 
   try {
-    chrome.runtime.onMessage.addListener((message) => {
-      if (message?.type === MESSAGE_OPEN) openCapture();
+    chrome.runtime.onMessage.addListener(message => {
+      if (message?.type === MESSAGE_OPEN_CAPTURE) openCapture();
     });
   } catch (_) {}
 })();
