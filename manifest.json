@@ -1,0 +1,78 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Project Links",
+  "version": "1.12.36",
+  "description": "POPでリンク追加後に検索条件を自動クリアし、一覧ですぐ登録結果を確認できるようにした版",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "contextMenus",
+    "activeTab",
+    "tabs",
+    "notifications"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png",
+    "32": "icons/icon32.png"
+  },
+  "action": {
+    "default_title": "Quick Links",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "auto-project-rules.js",
+        "content-floating-search.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "quick-links-open-links": {
+      "suggested_key": {
+        "default": "Alt+1"
+      },
+      "description": "右下POPをLinksタブで開く"
+    },
+    "quick-links-open-reds": {
+      "suggested_key": {
+        "default": "Alt+2"
+      },
+      "description": "右下POPをRedsタブで開く"
+    },
+    "quick-links-open-prompts": {
+      "suggested_key": {
+        "default": "Alt+3"
+      },
+      "description": "右下POPをPromptタブで開く"
+    },
+    "quick-links-clear-search": {
+      "suggested_key": {
+        "default": "Alt+4"
+      },
+      "description": "検索語をクリアし、現在の検索欄へ移動する"
+    }
+  }
+}

@@ -1,0 +1,226 @@
+[
+  {
+    "id": "rule-lineworks-message",
+    "keyword": "line.worksmobile.com/message/send",
+    "projectName": "LINEWORKS",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-lineworks-talk",
+    "keyword": "talk.worksmobile.com",
+    "projectName": "LINEWORKS",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-lineworks-board",
+    "keyword": "board.worksmobile.com",
+    "projectName": "掲示板",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-lineworks-mail",
+    "keyword": "mail.worksmobile.com/",
+    "projectName": "メールアーカイブ",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-lineworks-drive-jp1",
+    "keyword": "jp1-link.drive.worksmobile.com",
+    "projectName": "LWドライブ",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-lineworks-drive",
+    "keyword": "drive.worksmobile.com",
+    "projectName": "LWドライブ",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-google-sheets",
+    "keyword": "docs.google.com/spreadsheets",
+    "projectName": "スプレッドシート",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-google-slides",
+    "keyword": "docs.google.com/presentation",
+    "projectName": "Googleドキュメント",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-google-docs",
+    "keyword": "docs.google.com/document",
+    "projectName": "Googleドキュメント",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-google-forms",
+    "keyword": "docs.google.com/forms",
+    "projectName": "Googleドキュメント",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-google-drive",
+    "keyword": "drive.google.com",
+    "projectName": "ストレージ",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-dropbox",
+    "keyword": "dropbox.com",
+    "projectName": "ストレージ",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-notion",
+    "keyword": "notion",
+    "projectName": "Notion",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-urawa-official",
+    "keyword": "www.urawa-reds.co.jp",
+    "projectName": "クラブ発信",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-rexclub",
+    "keyword": "rexclub.urawa-reds.co.jp",
+    "projectName": "クラブ発信",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-jleague",
+    "keyword": "jleague.jp",
+    "projectName": "クラブ発信",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-urawa-demo",
+    "keyword": "urawa-demo.sb-factory.com",
+    "projectName": "一時保存",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-github",
+    "keyword": "github.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-gemini",
+    "keyword": "gemini.google.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-claude",
+    "keyword": "claude.ai",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-chatgpt",
+    "keyword": "chatgpt.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-copilot",
+    "keyword": "copilot.microsoft.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-canva",
+    "keyword": "canva.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-backlog",
+    "keyword": "backlog.com",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-00min",
+    "keyword": "00m.in",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-silovar-tools",
+    "keyword": "silovar-uk.github.io",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-apps-script",
+    "keyword": "script.google.com/macros",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  },
+  {
+    "id": "rule-platinumaps",
+    "keyword": "platinumaps.jp",
+    "projectName": "ツール",
+    "matchType": "contains",
+    "caseSensitive": false,
+    "enabled": true
+  }
+]

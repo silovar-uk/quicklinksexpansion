@@ -1,0 +1,18 @@
+{
+  "version": "1.12.36",
+  "generated_at": "2026-08-08T15:09:00+09:00",
+  "checks": {
+    "javascript_syntax": true,
+    "json_parse": true,
+    "manifest_version": true,
+    "manifest_references": true,
+    "sidepanel_duplicate_ids": true,
+    "pop_link_add_success_clears_search": true,
+    "pop_link_add_success_resets_search_project_filter": true,
+    "pop_link_add_success_returns_to_links_and_focuses_search": true,
+    "duplicate_or_failed_add_keeps_search": true,
+    "prompt_add_search_behavior_unchanged": true,
+    "lineworks_and_alt_f_regression_source_unchanged": true
+  },
+  "manual_chrome_e2e": false
+}
