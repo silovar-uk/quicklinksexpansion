@@ -162,13 +162,13 @@
             <div class="lr-title">Log Relay</div>
             <div class="lr-sub">その場では残すだけ。整理はここで。</div>
           </div>
-          <span class="lr-key">Alt + Space</span>
+          <span class="lr-key">Alt + M</span>
         </div>
         <div class="lr-status-tabs" role="tablist">
           ${STATUS_ORDER.map(status => `<button class="lr-status-tab${status === activeStatus ? ' active' : ''}" data-lr-status="${status}" type="button"><span>${STATUS[status]}</span><span class="lr-count">${c[status]}</span></button>`).join('')}
         </div>
         <div class="lr-list">
-          ${visible.length ? visible.map(entry => renderCard(entry)).join('') : `<div class="lr-empty">${STATUS[activeStatus]}のログはありません。<br>Webページで Alt + Space から1行だけ残せます。</div>`}
+          ${visible.length ? visible.map(entry => renderCard(entry)).join('') : `<div class="lr-empty">${STATUS[activeStatus]}のログはありません。<br>Webページで Alt + M から1行だけ残せます。</div>`}
         </div>
       </div>`;
     bindRootEvents(root);
