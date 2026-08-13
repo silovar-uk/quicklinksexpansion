@@ -1,7 +1,7 @@
 # AI handoff memo — Quick Project Links / Log Relay
 
 Updated: 2026-08-13
-Version: 1.14.0
+Version: 1.14.1
 
 ## Purpose
 
@@ -19,11 +19,18 @@ Log Relay is a lightweight checkpoint layer inside Quick Links:
 
 ### Capture / open
 
-- `Alt + M` → add one-line log memo.
-- `Alt + Shift + M` → open the Chrome side panel and switch directly to LOG.
+- `Alt + M` → add one-line log memo. This is detected directly in `log-relay-capture.js` on normal web pages.
+- `Alt + Shift + M` → open the Chrome side panel and switch directly to LOG. This is the manifest-level Chrome command for Log Relay panel opening.
 - Do not restore `Alt + Space` as a fallback.
 
-`Alt + Shift + M` is detected directly by `log-relay-capture.js` on normal web pages and sent to the background, because Chrome only permits a limited number of manifest-level suggested shortcuts. `quick-links-open-log` remains as an unsuggested command so it can be manually mapped in Chrome if needed.
+Chrome permits at most four manifest-level suggested keyboard shortcuts. The four slots are intentionally used for:
+
+- `Alt + 1`
+- `Alt + 2`
+- `Alt + 3`
+- `Alt + Shift + M`
+
+`Alt + M` stays as direct content-script detection because the capture UI itself only exists on normal web pages where the content script is available. `quick-links-add-log` remains as an unsuggested command for optional manual mapping.
 
 ### LOG view shortcuts
 
@@ -84,7 +91,7 @@ Deleting is a two-stage operation.
 1. Normal delete moves an entry to `status: "trash"` and adds `trashedAt`.
 2. A trashed entry is automatically and permanently removed 24 hours after `trashedAt`.
 
-Use `chrome.alarms` in `log-relay-background.js` to schedule the next exact expiry. Also purge expired trash on startup/install and when the side panel loads, so entries do not survive indefinitely if the browser was closed at the expiry moment.
+Use `chrome.alarms` in `log-relay-background.js` to schedule the next expiry. Also purge expired trash on startup/install and when the side panel loads, so entries do not survive indefinitely if the browser was closed at the expiry moment.
 
 Manual permanent delete is allowed from the 削除 view.
 
@@ -150,7 +157,7 @@ Keep the integration thin:
 - `log-relay-capture.js`
   - capture UI
   - direct `Alt + M`
-  - direct `Alt + Shift + M` panel request
+  - direct `Alt + Shift + M` fallback panel request on normal web pages
 - `log-relay-panel.js`
   - fourth mode
   - five views
