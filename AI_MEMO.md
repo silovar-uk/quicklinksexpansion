@@ -1,7 +1,7 @@
 # AI handoff memo — Quick Project Links / Log Relay
 
 Updated: 2026-08-13
-Version: 1.13.0
+Version: 1.13.1
 
 ## Purpose
 
@@ -19,7 +19,8 @@ Log Relay adds a very small checkpoint layer:
 
 ### Capture
 
-- Intended shortcut: `Alt + Space`.
+- Intended shortcut: `Alt + M` (M = Memo).
+- `Alt + Space` is intentionally not used because it commonly conflicts with OS/window shortcuts.
 - The input is one line only.
 - `Enter`: save.
 - `Esc`: close without saving.
@@ -79,25 +80,27 @@ The change intentionally avoids invasive edits to the large existing files.
   - preserves the existing side-panel implementation as the source of truth
 - `log-relay-capture.js`
   - runs as a content script after the existing floating search script
-  - handles the capture UI and direct `Alt + Space` detection
+  - handles the capture UI and direct `Alt + M` detection
 - `log-relay-panel.js`
   - adds the fourth side-panel mode dynamically
   - does not modify `sidepanel.js` state or its Links/REDS/Prompt logic
 
 Keep this “thin integration” approach for future maintenance unless there is a strong reason to refactor the core files.
 
-## Shortcut constraint
+## Shortcut policy
 
-Chrome supports `Space` as an extension command key, but OS/Chrome-reserved shortcuts take priority. On Windows, `Alt + Space` can be consumed by the window system menu. The implementation therefore registers the Chrome command and also listens directly in the content script. If the OS still consumes the shortcut, the exact combination cannot be guaranteed by extension code; use Chrome's extension shortcut settings to remap if needed rather than adding hidden behavior.
+Log Relay uses `Alt + M` as the canonical shortcut. It is both registered as the Chrome extension command and listened for directly in the content script so the capture UI remains responsive where possible.
 
-Because Chrome allows at most four suggested extension command shortcuts, v1.13.0 uses the four suggested slots for:
+Do not silently add `Alt + Space` as a fallback. If `Alt + M` conflicts with a specific environment in the future, change the canonical shortcut explicitly and update the manifest, content-script detection, documentation, and ZIP together.
+
+Because Chrome allows at most four suggested extension command shortcuts, v1.13.1 uses the four suggested slots for:
 
 - Alt+1
 - Alt+2
 - Alt+3
-- Alt+Space
+- Alt+M
 
-`quick-links-clear-search` remains defined but no longer has a manifest-level suggested key. Existing page-side and side-panel `Alt+4` handlers remain in place.
+`quick-links-clear-search` remains defined but has no manifest-level suggested key. Existing page-side and side-panel `Alt+4` handlers remain in place.
 
 ## Non-goals
 
