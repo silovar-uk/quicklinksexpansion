@@ -41,6 +41,16 @@ test('index normalization removes blanks and duplicates', () => {
   assert.deepEqual(core.normalizeIndex(['a', 'a', '', 'b', null]), ['a', 'b']);
 });
 
+test('Alt+M matches Log capture shortcut', () => {
+  assert.equal(shortcuts.matches({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: 'KeyM', key: 'm' }, shortcuts.registry.log.add), true);
+  assert.equal(shortcuts.matches({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, code: 'KeyM', key: 'M' }, shortcuts.registry.log.add), false);
+});
+
+test('Alt+Shift+M matches Log panel shortcut', () => {
+  assert.equal(shortcuts.matches({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, code: 'KeyM', key: 'M' }, shortcuts.registry.log.open), true);
+  assert.equal(shortcuts.matches({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: 'KeyM', key: 'm' }, shortcuts.registry.log.open), false);
+});
+
 test('Alt+Shift+1..5 maps to the five Log views', () => {
   for (const [key, view] of Object.entries({ 1: 'all', 2: 'inbox', 3: 'hold', 4: 'done', 5: 'trash' })) {
     assert.equal(shortcuts.getLogView({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, key }), view);
