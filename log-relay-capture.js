@@ -141,12 +141,12 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.isComposing || event.keyCode === 229 || event.repeat) return;
-    const isAltSpace = event.altKey
+    const isAltM = event.altKey
       && !event.ctrlKey
       && !event.metaKey
       && !event.shiftKey
-      && (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar');
-    if (!isAltSpace) return;
+      && (event.code === 'KeyM' || String(event.key || '').toLowerCase() === 'm');
+    if (!isAltM) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     openCapture();
