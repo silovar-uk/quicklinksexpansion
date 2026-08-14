@@ -48,12 +48,18 @@
     }
     if (targetWindowId == null) return false;
 
-    await setOpenRequest({
+    const request = {
       nonce: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       requestedAt: Date.now(),
       windowId: targetWindowId
-    });
-    await chrome.sidePanel.open({ windowId: targetWindowId });
+    };
+
+    // sidePanel.open() はユーザー操作に直接応答して呼ぶ必要がある。
+    // storage.set() の完了を await してから open() するとユーザー操作の文脈を失うことがあるため、
+    // 両APIを同じ同期区間で開始する。要求は先に書き始め、パネル側は初期化時または onChanged で拾う。
+    const requestPromise = setOpenRequest(request);
+    const openPromise = chrome.sidePanel.open({ windowId: targetWindowId });
+    await Promise.all([requestPromise, openPromise]);
     return true;
   }
 
