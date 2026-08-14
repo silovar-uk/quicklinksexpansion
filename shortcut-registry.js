@@ -7,6 +7,19 @@
     '5': 'trash'
   });
 
+  const LOG_VIEW_NUMBER_BY_CODE = Object.freeze({
+    Digit1: '1',
+    Numpad1: '1',
+    Digit2: '2',
+    Numpad2: '2',
+    Digit3: '3',
+    Numpad3: '3',
+    Digit4: '4',
+    Numpad4: '4',
+    Digit5: '5',
+    Numpad5: '5'
+  });
+
   const registry = Object.freeze({
     legacy: Object.freeze({
       links: 'Alt+1',
@@ -35,7 +48,11 @@
 
   function getLogView(event) {
     if (!event || !event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey) return '';
-    return LOG_VIEW_BY_NUMBER[String(event.key || '')] || '';
+
+    // Shift+数字では event.key が ! / @ 等になる配列があるため、物理キー位置を示す
+    // event.code を優先する。key はテスト・特殊環境向けの後方互換フォールバック。
+    const number = LOG_VIEW_NUMBER_BY_CODE[String(event.code || '')] || String(event.key || '');
+    return LOG_VIEW_BY_NUMBER[number] || '';
   }
 
   const api = Object.freeze({ registry, matches, getLogView });
