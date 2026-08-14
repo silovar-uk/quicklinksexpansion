@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.2",
-  "description": "Log Relay shortcut fix。Alt+Shift+1〜5の実キー判定とAlt+Shift+Mのサイドパネル起動を安定化",
+  "version": "1.15.3",
+  "description": "Alt+Shift+MでLog Relayを即時表示。コマンド発火時のtab.windowIdを使い、ユーザー操作の文脈を保ってサイドパネルを開く",
   "permissions": [
     "sidePanel",
     "storage",
