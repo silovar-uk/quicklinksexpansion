@@ -51,8 +51,29 @@ test('Alt+Shift+M matches Log panel shortcut', () => {
   assert.equal(shortcuts.matches({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: 'KeyM', key: 'm' }, shortcuts.registry.log.open), false);
 });
 
-test('Alt+Shift+1..5 maps to the five Log views', () => {
+test('Alt+Shift+1..5 maps physical digit keys even when Shift changes event.key', () => {
   for (const [key, view] of Object.entries({ 1: 'all', 2: 'inbox', 3: 'hold', 4: 'done', 5: 'trash' })) {
-    assert.equal(shortcuts.getLogView({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, key }), view);
+    assert.equal(shortcuts.getLogView({
+      altKey: true,
+      shiftKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      code: `Digit${key}`,
+      key: `shifted-symbol-${key}`
+    }), view);
+    assert.equal(shortcuts.getLogView({
+      altKey: true,
+      shiftKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      code: `Numpad${key}`,
+      key
+    }), view);
   }
+});
+
+test('Log view shortcuts require Alt+Shift without Ctrl/Meta', () => {
+  assert.equal(shortcuts.getLogView({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: 'Digit1', key: '1' }), '');
+  assert.equal(shortcuts.getLogView({ altKey: true, shiftKey: true, ctrlKey: true, metaKey: false, code: 'Digit1', key: '!' }), '');
+  assert.equal(shortcuts.getLogView({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: true, code: 'Digit1', key: '!' }), '');
 });
