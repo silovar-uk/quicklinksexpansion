@@ -1,7 +1,7 @@
 # AI handoff memo — Quick Project Links / Log Relay
 
-Updated: 2026-08-13
-Version: 1.15.1
+Updated: 2026-08-14
+Version: 1.15.2
 
 ## Product rule
 
@@ -27,7 +27,11 @@ Log Relay follows one rule: **capture now, organize later**.
 
 `shortcut-registry.js` is the canonical JavaScript registry for Log shortcuts and documents the existing legacy Quick Links shortcuts.
 
-**Safety exception:** `log-relay-capture.js` must also keep a minimal direct M-key matcher for `Alt+M` and `Alt+Shift+M`. v1.15.0 made capture activation depend entirely on `globalThis.QuickLinksShortcuts`; if that shared registry was unavailable in a content-script context, `Alt+M` became silent. Keep the fallback behavior exactly aligned with the registry. Do not add unrelated bindings there.
+**Shifted-number guardrail:** `Alt+Shift+1..5` must be matched primarily from `KeyboardEvent.code` (`Digit1..5` / `Numpad1..5`), not only from `KeyboardEvent.key`. On common keyboard layouts Shift changes `key` to a symbol such as `!`, so a numeric `key`-only test can pass while the real shortcut fails.
+
+**M-key safety exception:** `log-relay-capture.js` must also keep a minimal direct M-key matcher for `Alt+M` and `Alt+Shift+M`. v1.15.0 made capture activation depend entirely on `globalThis.QuickLinksShortcuts`; if that shared registry was unavailable in a content-script context, `Alt+M` became silent. Keep the fallback behavior exactly aligned with the registry. Do not add unrelated bindings there.
+
+**Side-panel user-gesture guardrail:** `chrome.sidePanel.open()` must be initiated in the same user-action turn as the keyboard shortcut. Do not `await` storage or other asynchronous work before starting `sidePanel.open()`. `log-relay-background.js` starts the transient open-request write and `sidePanel.open()` in the same synchronous section, then awaits both.
 
 Chrome allows only four manifest-level suggested command shortcuts. The suggested slots remain Alt+1 / Alt+2 / Alt+3 / Alt+Shift+M. Alt+M is detected directly by the content script; `quick-links-add-log` remains available as a command without a suggested key.
 
@@ -135,7 +139,7 @@ GitHub Actions must run, in this order:
 3. `node --test tests/*.test.js`
 4. package ZIP
 
-Tests include Log state transitions, trash 24h boundary, sort direction, index normalization, `Alt+M`, `Alt+Shift+M`, and Alt+Shift+1..5 view mapping.
+Tests include Log state transitions, trash 24h boundary, sort direction, index normalization, `Alt+M`, `Alt+Shift+M`, and realistic Alt+Shift+1..5 view mapping using `KeyboardEvent.code` even when Shift changes `event.key`.
 
 The installable ZIP excludes `.github`, backup, tests, dist, and large unused Gemini source images.
 
@@ -144,8 +148,10 @@ The installable ZIP excludes `.github`, backup, tests, dist, and large unused Ge
 1. Preserve behavior unless explicitly asked to change it.
 2. Keep Log entry mutations in background.
 3. Keep `Alt+M` robust even if the shared shortcut registry is unavailable.
-4. Prefer shared core helpers over duplicated business logic.
-5. Update tests when state/shortcut behavior changes.
-6. Update this memo when architecture, shortcut, storage schema, or packaging changes.
-7. Run validation before packaging.
-8. Update GitHub and provide the user a ZIP at the exact same version.
+4. Keep `Alt+Shift+1..5` physical-key-safe by preferring `KeyboardEvent.code`.
+5. Start `chrome.sidePanel.open()` before awaiting unrelated asynchronous work in a shortcut/user-action handler.
+6. Prefer shared core helpers over duplicated business logic.
+7. Update tests when state/shortcut behavior changes.
+8. Update this memo when architecture, shortcut, storage schema, or packaging changes.
+9. Run validation before packaging.
+10. Update GitHub and provide the user a ZIP at the exact same version.
