@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.1",
-  "description": "Internal Quality hotfix。Alt+Mの直接判定を冗長化し、Log Relay追加UIの起動回帰を修正",
+  "version": "1.15.2",
+  "description": "Log Relay shortcut fix。Alt+Shift+1〜5の実キー判定とAlt+Shift+Mのサイドパネル起動を安定化",
   "permissions": [
     "sidePanel",
     "storage",
