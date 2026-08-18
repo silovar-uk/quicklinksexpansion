@@ -28,6 +28,24 @@
       -webkit-backdrop-filter: blur(18px) saturate(135%);
     }
 
+    body.log-relay-active header h1 {
+      color: #0c4a6e !important;
+      text-shadow: 0 1px 0 rgba(255,255,255,.72);
+    }
+
+    body.log-relay-active header .header-btn,
+    body.log-relay-active header .help-header-btn {
+      color: #315d77 !important;
+      border-color: rgba(125,211,252,.42) !important;
+      background: rgba(255,255,255,.34) !important;
+    }
+
+    body.log-relay-active header .header-btn:hover,
+    body.log-relay-active header .help-header-btn:hover {
+      color: #0c4a6e !important;
+      background: rgba(255,255,255,.68) !important;
+    }
+
     body.log-relay-active .app-mode-tabs {
       background: rgba(224, 244, 255, .62) !important;
       border-bottom-color: rgba(125, 211, 252, .36) !important;
