@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.3",
-  "description": "Alt+Shift+MでLog Relayを即時表示。コマンド発火時のtab.windowIdを使い、ユーザー操作の文脈を保ってサイドパネルを開く",
+  "version": "1.15.4",
+  "description": "Alt+Shift+MでLog Relayを開閉。開いているときは同じショートカットでサイドパネルを閉じる",
   "permissions": [
     "sidePanel",
     "storage",
@@ -44,6 +44,7 @@
         "https://*/*"
       ],
       "js": [
+        "log-relay-content-command-guard.js",
         "shortcut-registry.js",
         "auto-project-rules.js",
         "content-floating-search.js",
@@ -77,11 +78,11 @@
     "quick-links-add-log": {
       "description": "Log Relayへ1行メモを追加する"
     },
-    "quick-links-open-log": {
+    "quick-links-toggle-log": {
       "suggested_key": {
         "default": "Alt+Shift+M"
       },
-      "description": "Log Relayをサイドパネルで直接表示する"
+      "description": "Log Relayのサイドパネルを開閉する"
     }
   }
 }
