@@ -26,6 +26,7 @@
     await loadScript('shortcut-registry.js');
     await loadScript('log-relay-core.js');
     await loadScript('log-relay-panel.js');
+    await loadScript('log-relay-polish.js');
   } catch (error) {
     console.error('[Quick Links] サイドパネルの読み込みに失敗しました。', error);
     document.body.textContent = 'Quick Linksの読み込みに失敗しました。拡張機能を再読み込みしてください。';
