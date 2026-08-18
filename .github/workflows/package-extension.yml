@@ -1,5 +1,6 @@
 name: Package extension ZIP
 
+# Temporary PR run used to retrieve a complete package artifact.
 on:
   push:
     branches: [main]
