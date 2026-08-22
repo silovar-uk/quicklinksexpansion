@@ -30,6 +30,7 @@
       document.body.appendChild(script);
     });
 
+    await loadScript('reds-x-search-core.js');
     await loadScript('reds-x-search-polish.js');
     await loadScript('shortcut-registry.js');
     await loadScript('log-relay-core.js');
