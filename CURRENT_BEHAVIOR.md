@@ -91,6 +91,15 @@ The mature Quick Links state commit path preserves concurrent edits rather than 
 
 Do not replace this behavior with naive `chrome.storage.local.set()` calls from individual views.
 
+## Backup import and exact-duplicate cleanup
+
+- Import accepts the current combined backup shape and existing legacy Quick Links / Prompt shapes.
+- Complete restore remains distinct from merge import and requires its existing confirmation path.
+- Quick Link exact-duplicate identity includes canonical URL, normalized title, project, note and archive state. Active and archived records remain distinct.
+- Prompt exact-duplicate identity includes normalized title, normalized line endings/body and category.
+- Duplicate compaction keeps the existing display record while preserving the earliest creation/addition date, latest use date, maximum usage count, combined click history and strongest favorite state where applicable.
+- Project reconstruction keeps `未分類` and removes duplicate project names.
+
 ## Log Relay
 
 Persistent states:

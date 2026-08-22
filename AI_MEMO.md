@@ -18,7 +18,8 @@ Before cleanup/refactoring, read:
 
 1. `CURRENT_BEHAVIOR.md` — user-visible behavior contract.
 2. `ARCHITECTURE.md` — runtime graph, messages, storage and cleanup risk map.
-3. this file — implementation guardrails and handoff notes.
+3. `RESPONSIBILITY_MAP.md` — giant-file ownership and explicit non-targets.
+4. this file — implementation guardrails and handoff notes.
 
 ## Canonical shortcuts
 
@@ -163,6 +164,14 @@ Main Quick Links state uses the conflict-aware `quickLinksCommitState` backgroun
 
 `sidepanel.html` / `sidepanel.js` remain the mature core UI source of truth.
 
+The base `sidepanel.html` script order is:
+
+1. `auto-project-rules.js`
+2. `quick-links-import-core.js`
+3. `sidepanel.js`
+
+`quick-links-import-core.js` owns only deterministic import shapes, exact-duplicate keys, merge/compaction policy and project reconstruction. Import confirmations, state commits and rendering remain in `sidepanel.js`. Keep this dependency order.
+
 `sidepanel-wrapper.js` loads the base page, waits for its initialization boundary, then attaches:
 
 1. `qpl-design-tokens.css`
@@ -208,6 +217,7 @@ Characterization baseline now includes:
 - `tests/reds-x-search-characterization.test.js`
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
+- `tests/import-data-core-characterization.test.js`
 
 The REDS/X tests import `reds-x-search-core.js` directly, so the deterministic production query rules are tested without DOM instrumentation.
 
@@ -219,6 +229,7 @@ Covered behavior includes:
 - link input normalization;
 - Backlog dynamic URL resolution in JST calendar boundaries;
 - state merge/conflict behavior.
+- import-shape compatibility and exact-duplicate merge/compaction behavior.
 
 GitHub Actions must continue to run:
 
@@ -233,7 +244,7 @@ GitHub Actions must continue to run:
 - PHASE 2 — documentation and architecture cleanup: completed.
 - PHASE 3 — confirmed dead code and low-risk pure-helper cleanup: completed.
 - PHASE 4 — mature side-panel X-search ownership and compatibility-override removal: completed.
-- PHASE 5 — revisit giant-file boundaries only after earlier phases are stable: next candidate, not started.
+- PHASE 5 — giant-file responsibility map and import/deduplication core extraction: completed.
 
 ## Update workflow for future AI sessions
 

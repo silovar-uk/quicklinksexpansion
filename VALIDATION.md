@@ -12,7 +12,7 @@ The current cleanup phases deliberately treat **v1.15.6 behavior as the contract
 - `ARCHITECTURE.md`
 - `AI_MEMO.md`
 
-PHASE 1 added characterization coverage without changing production behavior. PHASE 4 moves effective X-search URL construction into the mature side panel without changing the v1.15.6 user contract.
+PHASE 1 added characterization coverage without changing production behavior. PHASE 5 extracts deterministic import/deduplication rules from `sidepanel.js` without changing the v1.15.6 user contract.
 
 ## Current deterministic tests
 
@@ -22,8 +22,9 @@ The repository contains:
 - `tests/reds-x-search-characterization.test.js`
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
+- `tests/import-data-core-characterization.test.js`
 
-The PHASE 1 baseline run completed with **27 / 27 tests passing**. After the two PHASE 4 ownership tests were added, the full deterministic suite completed with **29 / 29 tests passing**.
+The PHASE 1 baseline run completed with **27 / 27 tests passing**. PHASE 4 increased the suite to 29 tests. PHASE 5 adds six import-core characterization cases, bringing the full suite to **35 / 35 tests passing**.
 
 ## Behavior areas now fixed by tests
 
@@ -79,6 +80,15 @@ The PHASE 1 baseline run completed with **27 / 27 tests passing**. After the two
 - string arrays preserve unrelated remote additions while respecting local removals;
 - object state preserves unrelated remote keys while applying local edits/deletions.
 
+### Import and exact-duplicate compaction
+
+- current combined backup and legacy import shapes;
+- canonical Quick Link duplicate identity, including active/archive separation;
+- Prompt duplicate identity with normalized line endings;
+- usage dates/counts/history and favorite-state preservation during compaction;
+- project reconstruction with `未分類` first;
+- `auto-project-rules.js` -> `quick-links-import-core.js` -> `sidepanel.js` load ownership.
+
 ## GitHub Actions validation order
 
 `.github/workflows/package-extension.yml` currently performs:
@@ -116,12 +126,12 @@ During cleanup:
 - LEVEL 0 documentation changes do not require a version bump;
 - LEVEL 1+ code changes should be isolated and validated before the next cleanup theme.
 
-## PHASE 4 validation result
+## PHASE 5 validation result
 
 1. all production JavaScript passed `node --check`;
-2. all **29 / 29** deterministic tests passed;
-3. the X ownership tests passed **9 / 9**;
+2. all **35 / 35** deterministic tests passed;
+3. the import-core characterization tests passed **6 / 6**;
 4. no manifest, storage, Log Relay or wrapper-architecture changes were made;
 5. `manifest.json` remains at v1.15.6.
 
-Before PHASE 5, define and characterize a specific responsibility boundary. Do not split giant files solely to reduce line count.
+Before any further extraction, select one named boundary from `RESPONSIBILITY_MAP.md` and add its behavior tests first. Do not split giant files solely to reduce line count.

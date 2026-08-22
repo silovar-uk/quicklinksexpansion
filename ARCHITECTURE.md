@@ -30,6 +30,7 @@ manifest.json
    └─ sidepanel-wrapper.html
       └─ sidepanel-wrapper.js
          ├─ sidepanel.html / sidepanel.js
+         │  └─ quick-links-import-core.js
          ├─ qpl-design-tokens.css
          ├─ reds-x-search-core.js
          ├─ reds-x-search-polish.js
@@ -50,6 +51,8 @@ manifest.json
 - `content-floating-search.js` — page-side floating Links / REDS / Prompt UI and page-context shortcut routing.
 - `background.js` — serialized state commits, conflict-aware merge behavior, atomic click/copy counters, dynamic URL resolution, main Quick Links command routing and side-panel presence coordination.
 - `auto-project-rules.js` — deterministic link normalization, duplicate comparison, LINE WORKS normalization, automatic project matching and link/prompt normalization.
+- `quick-links-import-core.js` — DOM-free import-shape parsing, exact-duplicate keys, duplicate record merge/compaction and project-list reconstruction. It depends on `QuickLinksAutoRules` and loads before `sidepanel.js`.
+- `RESPONSIBILITY_MAP.md` — current ownership map and extraction guardrails for the two mature giant files.
 
 ### Shared / infrastructure
 
@@ -198,6 +201,7 @@ Current deterministic suite:
 - `tests/reds-x-search-characterization.test.js`
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
+- `tests/import-data-core-characterization.test.js`
 
 The REDS/X characterization tests now exercise the pure production core directly. The other characterization tests may still assert implementation details when needed to prevent behavior drift during refactoring.
 
@@ -212,14 +216,15 @@ Safe: current behavior/architecture/validation documentation.
 Completed so far:
 
 - removed the confirmed-dead `log-relay-command-open-fix.js` shim;
-- extracted deterministic REDS/X search logic into `reds-x-search-core.js` without changing user-visible behavior.
+- extracted deterministic REDS/X search logic into `reds-x-search-core.js` without changing user-visible behavior;
+- extracted deterministic import/deduplication logic into `quick-links-import-core.js` after mapping giant-file responsibilities.
 
 Potential future LEVEL 1 work must still be judged by change surface. The duplicated dynamic Backlog/JST helpers span three large runtime files, so they are not being consolidated merely because the logic is similar.
 
 ### LEVEL 2 — medium risk
 
 - Completed in PHASE 4: moved X-search URL construction ownership into the mature side-panel implementation and removed runtime function overrides/capture interception from the polish layer.
-- Split major feature responsibilities out of `sidepanel.js` or `content-floating-search.js`.
+- PHASE 5 mapped both giant files and extracted only the DOM-free import/deduplication core. Broader feature splits remain medium risk and require dedicated characterization first.
 
 ### LEVEL 3 — high risk / do not touch during ordinary cleanup
 

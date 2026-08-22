@@ -65,7 +65,7 @@ Composition entry points:
 - `sidepanel-wrapper.html` / `sidepanel-wrapper.js`
 - `manifest.json` content scripts
 
-For the full runtime graph, message catalog, storage catalog and cleanup risk map, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For the full runtime graph, message catalog, storage catalog and cleanup risk map, see [ARCHITECTURE.md](ARCHITECTURE.md). For the mature giant-file ownership map, see [RESPONSIBILITY_MAP.md](RESPONSIBILITY_MAP.md).
 
 For the exact behavior that cleanup work must preserve, see [CURRENT_BEHAVIOR.md](CURRENT_BEHAVIOR.md).
 
@@ -96,6 +96,7 @@ Current test areas include:
 - LINE WORKS URL/channel canonicalization
 - Backlog dynamic URL resolution using JST calendar boundaries
 - storage conflict/merge behavior
+- import formats and exact-duplicate compaction/merge behavior
 
 GitHub Actions also parses `manifest.json` and runs `node --check` on JavaScript before packaging.
 
@@ -121,7 +122,7 @@ Current cleanup sequence:
 - PHASE 2: documentation / architecture cleanup — completed
 - PHASE 3: confirmed dead code and low-risk pure-helper cleanup — completed
 - PHASE 4: mature side-panel X-search ownership and compatibility-override removal — completed
-- PHASE 5: reconsider large-file boundaries only after the earlier phases are stable — next candidate
+- PHASE 5: giant-file responsibility map and import/deduplication core extraction — completed
 
 ## Current baseline
 

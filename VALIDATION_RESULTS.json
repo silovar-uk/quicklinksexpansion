@@ -1,24 +1,27 @@
 {
   "version": "1.15.6",
   "baseline_date": "2026-08-22",
-  "phase": "PHASE_4_X_SEARCH_OWNERSHIP",
+  "phase": "PHASE_5_IMPORT_CORE_EXTRACTION",
   "production_code_changed": true,
   "tests": {
-    "files": 4,
+    "files": 5,
     "baseline_cases": 27,
     "baseline_passed": 27,
     "baseline_failed": 0,
-    "current_cases": 29,
-    "current_passed": 29,
+    "current_cases": 35,
+    "current_passed": 35,
     "current_failed": 0,
     "reds_x_cases": 9,
     "reds_x_passed": 9,
+    "import_core_cases": 6,
+    "import_core_passed": 6,
     "areas": [
       "log_relay_core_and_shortcuts",
       "reds_x_search",
       "lineworks_and_link_normalization",
       "backlog_dynamic_urls",
-      "storage_merge_conflicts"
+      "storage_merge_conflicts",
+      "import_and_duplicate_compaction"
     ]
   },
   "documentation": {
@@ -39,5 +42,5 @@
   "manual_chrome_e2e": false,
   "static_x_entry_path_review": true,
   "manifest_version_unchanged": true,
-  "notes": "PHASE 4 passed all 29 deterministic tests and all production JavaScript syntax checks. Static inspection confirmed the X button, account-input Enter, Alt+X and routed search-x paths reach the mature sidepanel entry point. Browser-specific unpacked-extension E2E remains pending."
+  "notes": "PHASE 5 passed all 35 deterministic tests and all production JavaScript syntax checks. Import and duplicate-compaction rules now have a DOM-free production owner and six direct characterization tests. Browser-specific unpacked-extension E2E remains pending."
 }
