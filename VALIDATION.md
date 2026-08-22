@@ -1,35 +1,123 @@
-# Quick Project Links v1.12.36 検証結果
+# Quick Project Links v1.15.6 — Validation Baseline
 
-- 対象：`quick-project-links-v1.12.36`
-- 変更範囲：POPでLinks追加成功後に検索条件をリセットする処理
+Updated: **2026-08-22**
 
-## 実装確認
+## Scope
 
-- POPでリンクを正常に新規追加した後、一覧へ戻る直前に共有検索語を空文字へ変更します。
-- アーカイブ済みリンクを復元した場合も同じく検索語をクリアします。
-- `applySharedSearchQuery('')` を利用するため、検索語だけでなく検索中の分類フィルターも `すべて` に戻り、分類候補の展開状態も閉じます。
-- 一覧へ戻った後はLinks検索欄へフォーカスします。
-- 重複URLで追加を中止した場合、URL検証エラーの場合、storage保存失敗の場合はリセット地点まで到達しないため、検索条件と入力状態を維持します。
-- Prompt追加成功時の検索挙動は変更していません。
+This file records the current validation baseline before codebase cleanup/refactoring.
 
-## 自動検証
+The current cleanup phases deliberately treat **v1.15.6 behavior as the contract**. See:
 
-以下を確認しました。
+- `CURRENT_BEHAVIOR.md`
+- `ARCHITECTURE.md`
+- `AI_MEMO.md`
 
-- JavaScript 4ファイル：`node --check` 合格
-- JSONファイル：パース合格
-- Manifestバージョン：`1.12.36`
-- Manifest参照ファイル：すべて存在
-- `sidepanel.html`：ID重複なし
-- Links追加成功処理で `storageSet` 成功後、`render()` より前に検索クリアが実行されること
-- 重複判定／保存失敗のreturnが検索クリアより前に存在すること
-- 空検索時に分類フィルターが `ALL` へ戻る既存処理を利用していること
-- Prompt追加処理には検索クリアを追加していないこと
+PHASE 1 added characterization coverage without changing production behavior. PHASE 2 updates documentation only.
 
-## 回帰について
+## Current deterministic tests
 
-今回の変更は `content-floating-search.js` のLinks追加成功ブロックとバージョン／説明文のみです。`Alt + F`分類フィルター、LINE WORKS channelId重複判定、POP編集上書き処理そのものには変更を加えていません。
+The repository contains:
 
-## 未実施
+- `tests/log-relay-core.test.js`
+- `tests/reds-x-search-characterization.test.js`
+- `tests/auto-project-rules-characterization.test.js`
+- `tests/background-storage-and-dynamic-url-characterization.test.js`
 
-通常表示Chromeへ未パッケージ拡張機能を読み込んだ最終E2E操作は、この実行環境では実施していません。拡張機能再読み込み後、POPで検索語を入れた状態からリンクを追加し、一覧復帰時に検索欄が空になっていることを最終確認してください。
+The PHASE 1 baseline run completed with **27 / 27 tests passing** before the documentation-only PHASE 2 changes.
+
+## Behavior areas now fixed by tests
+
+### Log Relay
+
+- move to Trash sets `trashedAt`;
+- restore removes `trashedAt`;
+- 24-hour deletion boundary;
+- deterministic sorting;
+- index normalization;
+- `Alt+M` matching;
+- `Alt+Shift+M` matching;
+- `Alt+Shift+1..5` physical-key-safe mapping.
+
+### REDS / X
+
+- default account remains `REDSOFFICIAL`;
+- account input remains editable;
+- `@handle` normalization;
+- `x.com/handle` / `twitter.com/handle` normalization;
+- keyword + account query behavior;
+- keyword-only behavior;
+- account-only behavior;
+- blank keyword + blank account does not build a search;
+- start-date `since:` behavior;
+- end-date exclusive `until:` behavior.
+
+### Link / LINE WORKS normalization
+
+- normal HTTP/HTTPS validation;
+- unsafe/unsupported scheme rejection;
+- `quicklinks://` built-in URL acceptance;
+- bare LINE WORKS channel ID normalization;
+- different LINE WORKS URL shapes with the same channel ID compare as the same destination;
+- UUID channel normalization.
+
+### Backlog dynamic URLs
+
+- only the supported `quicklinks://backlog/updated?range=last-N-calendar-days` shape resolves;
+- supported range remains 1–366 days;
+- JST calendar boundaries remain deterministic;
+- N=1 means today;
+- N=2 means yesterday through today;
+- existing Backlog sort/status parameters remain present.
+
+### State merge/conflict behavior
+
+- local deletion wins over a stale local copy;
+- unrelated remote records survive local edits;
+- counter fields merge by delta;
+- string arrays preserve unrelated remote additions while respecting local removals;
+- object state preserves unrelated remote keys while applying local edits/deletions.
+
+## GitHub Actions validation order
+
+`.github/workflows/package-extension.yml` currently performs:
+
+1. parse `manifest.json`;
+2. `node --check` all production JavaScript outside excluded directories;
+3. `node --test tests/*.test.js`;
+4. read manifest version;
+5. package the extension ZIP;
+6. upload the workflow artifact.
+
+The workflow excludes `.github`, `backup`, `dist`, `tests`, and large unused Gemini source images from the installable artifact.
+
+## Manual Chrome E2E
+
+A real Chrome/unpacked-extension pass is still the final authority for browser-specific behavior that Node characterization tests cannot prove, especially:
+
+- Chrome side-panel user-gesture timing;
+- `Alt+Shift+M` open/close behavior across page and panel focus;
+- content-script behavior on already-open tabs after extension reload;
+- visual rendering and focus order;
+- keyboard command assignment in `chrome://extensions/shortcuts`.
+
+The deterministic suite reduces refactor risk but does not replace manual browser verification for these areas.
+
+## Current cleanup rule
+
+During cleanup:
+
+- production behavior must remain consistent with `CURRENT_BEHAVIOR.md`;
+- storage keys and message contracts remain stable unless explicitly migrated;
+- unexpected behavior changes are regressions;
+- LEVEL 0 documentation changes do not require a version bump;
+- LEVEL 1+ code changes should be isolated and validated before the next cleanup theme.
+
+## Next validation target
+
+Before PHASE 3 removes confirmed-dead code or extracts low-risk helpers:
+
+1. confirm deterministic tests remain green;
+2. confirm the file is genuinely outside the runtime load graph;
+3. change one cleanup target at a time;
+4. rerun syntax and tests;
+5. keep v1.15.6 user-visible behavior unchanged.
