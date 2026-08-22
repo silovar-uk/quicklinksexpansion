@@ -75,7 +75,7 @@ manifest.json
 - `log-relay-toggle-panel.js` — side-panel presence reporting and in-panel close shortcut handling.
 - `log-relay-content-command-guard.js` — prevents old page-side `Alt+Shift+M` handling from double-firing the Chrome command path.
 
-`log-relay-command-open-fix.js` remains in the repository but is not loaded by the current manifest/wrapper graph and watches the obsolete `quick-links-open-log` command. Treat it as a confirmed-dead cleanup candidate, not as active architecture.
+The obsolete `log-relay-command-open-fix.js` shim was removed during PHASE 3 after confirming that it was not loaded by the manifest/wrapper graph and only watched the retired `quick-links-open-log` command. The active command remains `quick-links-toggle-log` through `log-relay-toggle-background.js`.
 
 ## 3. Important event paths
 
@@ -205,7 +205,7 @@ Safe: current behavior/architecture/validation documentation.
 
 ### LEVEL 1 — low risk with tests
 
-- Remove files proven unreferenced, beginning with `log-relay-command-open-fix.js`.
+- Remove files proven unreferenced. The first confirmed-dead Log Relay shim has now been removed.
 - Extract deterministic pure helpers without changing callers or storage/message contracts.
 
 ### LEVEL 2 — medium risk
