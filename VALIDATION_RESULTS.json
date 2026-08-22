@@ -1,13 +1,18 @@
 {
   "version": "1.15.6",
   "baseline_date": "2026-08-22",
-  "phase": "PHASE_2_DOCUMENTATION",
-  "production_code_changed": false,
+  "phase": "PHASE_4_X_SEARCH_OWNERSHIP",
+  "production_code_changed": true,
   "tests": {
     "files": 4,
     "baseline_cases": 27,
     "baseline_passed": 27,
     "baseline_failed": 0,
+    "current_cases": 29,
+    "current_passed": 29,
+    "current_failed": 0,
+    "reds_x_cases": 9,
+    "reds_x_passed": 9,
     "areas": [
       "log_relay_core_and_shortcuts",
       "reds_x_search",
@@ -32,5 +37,7 @@
     "package_zip"
   ],
   "manual_chrome_e2e": false,
-  "notes": "The 27/27 deterministic result is the PHASE 1 baseline. PHASE 2 changes documentation only; browser-specific side-panel and extension lifecycle behavior still requires manual Chrome E2E when code affecting those paths changes."
+  "static_x_entry_path_review": true,
+  "manifest_version_unchanged": true,
+  "notes": "PHASE 4 passed all 29 deterministic tests and all production JavaScript syntax checks. Static inspection confirmed the X button, account-input Enter, Alt+X and routed search-x paths reach the mature sidepanel entry point. Browser-specific unpacked-extension E2E remains pending."
 }

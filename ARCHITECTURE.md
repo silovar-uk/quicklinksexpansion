@@ -62,9 +62,10 @@ manifest.json
 ### REDS / X search
 
 - `reds-x-search-core.js` owns the deterministic, DOM-free X-search rules: default `REDSOFFICIAL`, account normalization, end-date increment, query construction and final X URL construction. It is CommonJS-compatible so tests can exercise the exact production logic directly.
-- `reds-x-search-polish.js` now owns only the side-panel compatibility/UI layer: editable account field injection, button state, Enter handling, labels, button interception and bridging the mature `sidepanel.js` entry points to the core URL builder.
+- `sidepanel.js` owns the effective X-search entry point and delegates URL construction to `reds-x-search-core.js`, with the v1.15.6 fixed-account builder retained only as a core-not-yet-loaded fallback.
+- `reds-x-search-polish.js` owns only the side-panel UI layer: editable account field injection, button state, account-input Enter handling, labels and DOM-lifecycle waiting.
 - `sidepanel-wrapper.js` must load `reds-x-search-core.js` before `reds-x-search-polish.js`.
-- The polish layer still overrides mature `sidepanel.js` X-search functions and intercepts the X-search button in capture phase. Removing that compatibility bridge remains a LEVEL 2 task.
+- PHASE 4 removed the polish-layer function overrides and capture-phase X-button interception. Button, Alt+X and routed runtime actions now use the mature `sidepanel.js` entry point directly.
 
 ### Log Relay
 
@@ -94,14 +95,14 @@ Chrome command (Alt+1 / Alt+2 / Alt+3 / configured clear-search)
 
 ```text
 button / Enter / Alt+X or routed side-panel action
-  -> effective runRedsXSearchSidepanel
-  -> reds-x-search-polish.js compatibility bridge
+  -> sidepanel.js runRedsXSearchSidepanel
+  -> sidepanel.js buildRedsXUrlSidepanel
   -> reds-x-search-core.js
   -> deterministic query + X URL
   -> quickLinksOpenTab / chrome.tabs.create path
 ```
 
-Current query contract is covered by `tests/reds-x-search-characterization.test.js`, which imports `reds-x-search-core.js` directly.
+Current query contract is covered by `tests/reds-x-search-characterization.test.js`, which imports `reds-x-search-core.js` directly and pins the production ownership boundary between `sidepanel.js` and the UI-only polish layer.
 
 ### Log capture
 
@@ -217,7 +218,7 @@ Potential future LEVEL 1 work must still be judged by change surface. The duplic
 
 ### LEVEL 2 — medium risk
 
-- Move the remaining X-search UI/entry-point bridge from `reds-x-search-polish.js` into the mature side-panel implementation and remove runtime function overrides/capture interception.
+- Completed in PHASE 4: moved X-search URL construction ownership into the mature side-panel implementation and removed runtime function overrides/capture interception from the polish layer.
 - Split major feature responsibilities out of `sidepanel.js` or `content-floating-search.js`.
 
 ### LEVEL 3 — high risk / do not touch during ordinary cleanup

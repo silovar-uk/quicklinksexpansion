@@ -4,7 +4,7 @@ Updated: **2026-08-22**
 
 ## Scope
 
-This file records the current validation baseline before codebase cleanup/refactoring.
+This file records the current validation state for codebase cleanup/refactoring.
 
 The current cleanup phases deliberately treat **v1.15.6 behavior as the contract**. See:
 
@@ -12,7 +12,7 @@ The current cleanup phases deliberately treat **v1.15.6 behavior as the contract
 - `ARCHITECTURE.md`
 - `AI_MEMO.md`
 
-PHASE 1 added characterization coverage without changing production behavior. PHASE 2 updates documentation only.
+PHASE 1 added characterization coverage without changing production behavior. PHASE 4 moves effective X-search URL construction into the mature side panel without changing the v1.15.6 user contract.
 
 ## Current deterministic tests
 
@@ -23,7 +23,7 @@ The repository contains:
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
 
-The PHASE 1 baseline run completed with **27 / 27 tests passing** before the documentation-only PHASE 2 changes.
+The PHASE 1 baseline run completed with **27 / 27 tests passing**. After the two PHASE 4 ownership tests were added, the full deterministic suite completed with **29 / 29 tests passing**.
 
 ## Behavior areas now fixed by tests
 
@@ -49,7 +49,9 @@ The PHASE 1 baseline run completed with **27 / 27 tests passing** before the doc
 - account-only behavior;
 - blank keyword + blank account does not build a search;
 - start-date `since:` behavior;
-- end-date exclusive `until:` behavior.
+- end-date exclusive `until:` behavior;
+- `sidepanel.js` owns effective X URL construction through `reds-x-search-core.js`;
+- the polish layer does not override mature functions or capture-intercept the X button.
 
 ### Link / LINE WORKS normalization
 
@@ -102,6 +104,8 @@ A real Chrome/unpacked-extension pass is still the final authority for browser-s
 
 The deterministic suite reduces refactor risk but does not replace manual browser verification for these areas.
 
+For PHASE 4, static entry-path inspection confirmed that the X button, account-input Enter, Alt+X and routed `search-x` action all reach `runRedsXSearchSidepanel()`. A real unpacked-extension Chrome run was not available in the validation environment, so browser E2E remains pending.
+
 ## Current cleanup rule
 
 During cleanup:
@@ -112,12 +116,12 @@ During cleanup:
 - LEVEL 0 documentation changes do not require a version bump;
 - LEVEL 1+ code changes should be isolated and validated before the next cleanup theme.
 
-## Next validation target
+## PHASE 4 validation result
 
-Before PHASE 3 removes confirmed-dead code or extracts low-risk helpers:
+1. all production JavaScript passed `node --check`;
+2. all **29 / 29** deterministic tests passed;
+3. the X ownership tests passed **9 / 9**;
+4. no manifest, storage, Log Relay or wrapper-architecture changes were made;
+5. `manifest.json` remains at v1.15.6.
 
-1. confirm deterministic tests remain green;
-2. confirm the file is genuinely outside the runtime load graph;
-3. change one cleanup target at a time;
-4. rerun syntax and tests;
-5. keep v1.15.6 user-visible behavior unchanged.
+Before PHASE 5, define and characterize a specific responsibility boundary. Do not split giant files solely to reduce line count.

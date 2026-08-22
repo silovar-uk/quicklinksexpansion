@@ -63,7 +63,8 @@ After an extension update, already-open web tabs still contain previously inject
 The current implementation is split into:
 
 - `reds-x-search-core.js` — deterministic pure rules: default `REDSOFFICIAL`, account normalization, date increment, query generation and final X URL generation;
-- `reds-x-search-polish.js` — side-panel compatibility/UI layer: account input injection, button state, Enter handling, labels and bridges to the mature side-panel entry points.
+- `sidepanel.js` — effective button, Alt+X and routed runtime entry point; delegates X URL construction to the core;
+- `reds-x-search-polish.js` — UI-only layer: account input injection, button state, account-input Enter handling, labels and DOM-lifecycle waiting.
 
 Current behavior:
 
@@ -78,9 +79,9 @@ Current behavior:
 - end date -> next calendar date as exclusive `until:`;
 - button / Enter / routed `Alt+X` paths must reach the same effective search behavior.
 
-`reds-x-search-polish.js` still overrides `buildRedsXUrlSidepanel` and `runRedsXSearchSidepanel` and intercepts the X-search button in capture phase. This is an intentional temporary compatibility shape, not the desired final architecture.
+PHASE 4 removed the polish-layer overrides of `buildRedsXUrlSidepanel` / `runRedsXSearchSidepanel` and the capture-phase X-button interception. Do not reintroduce those bridges. Keep `reds-x-search-core.js` as the deterministic source for query rules and `sidepanel.js` as the effective runtime entry point.
 
-Do not remove the polish bridge until its entry-point/UI behavior is moved into the mature side-panel implementation. Keep `reds-x-search-core.js` as the deterministic source for query rules unless there is an explicit reason to replace it.
+The account field may intentionally be blank for keyword-only search. Default to `REDSOFFICIAL` only when the account UI is not present; do not coerce an explicitly blank field back to the default.
 
 ## Log states and views
 
@@ -230,9 +231,9 @@ GitHub Actions must continue to run:
 
 - PHASE 1 — characterization tests and `CURRENT_BEHAVIOR.md`: completed.
 - PHASE 2 — documentation and architecture cleanup: completed.
-- PHASE 3 — confirmed dead code and low-risk pure-helper cleanup: current.
-- PHASE 4 — absorb the remaining X-search UI/entry-point bridge into mature side-panel code, then remove the compatibility override.
-- PHASE 5 — revisit giant-file boundaries only after earlier phases are stable.
+- PHASE 3 — confirmed dead code and low-risk pure-helper cleanup: completed.
+- PHASE 4 — mature side-panel X-search ownership and compatibility-override removal: completed.
+- PHASE 5 — revisit giant-file boundaries only after earlier phases are stable: next candidate, not started.
 
 ## Update workflow for future AI sessions
 

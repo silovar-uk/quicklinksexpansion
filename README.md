@@ -118,10 +118,10 @@ For cleanup/refactoring work:
 Current cleanup sequence:
 
 - PHASE 1: behavior characterization — completed
-- PHASE 2: documentation / architecture cleanup — current
-- PHASE 3: confirmed dead code and low-risk pure-helper cleanup
-- PHASE 4: absorb the current X-search compatibility patch into the mature side-panel implementation
-- PHASE 5: reconsider large-file boundaries only after the earlier phases are stable
+- PHASE 2: documentation / architecture cleanup — completed
+- PHASE 3: confirmed dead code and low-risk pure-helper cleanup — completed
+- PHASE 4: mature side-panel X-search ownership and compatibility-override removal — completed
+- PHASE 5: reconsider large-file boundaries only after the earlier phases are stable — next candidate
 
 ## Current baseline
 
