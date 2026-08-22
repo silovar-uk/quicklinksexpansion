@@ -1,18 +1,36 @@
 {
-  "version": "1.12.36",
-  "generated_at": "2026-08-08T15:09:00+09:00",
-  "checks": {
-    "javascript_syntax": true,
-    "json_parse": true,
-    "manifest_version": true,
-    "manifest_references": true,
-    "sidepanel_duplicate_ids": true,
-    "pop_link_add_success_clears_search": true,
-    "pop_link_add_success_resets_search_project_filter": true,
-    "pop_link_add_success_returns_to_links_and_focuses_search": true,
-    "duplicate_or_failed_add_keeps_search": true,
-    "prompt_add_search_behavior_unchanged": true,
-    "lineworks_and_alt_f_regression_source_unchanged": true
+  "version": "1.15.6",
+  "baseline_date": "2026-08-22",
+  "phase": "PHASE_2_DOCUMENTATION",
+  "production_code_changed": false,
+  "tests": {
+    "files": 4,
+    "baseline_cases": 27,
+    "baseline_passed": 27,
+    "baseline_failed": 0,
+    "areas": [
+      "log_relay_core_and_shortcuts",
+      "reds_x_search",
+      "lineworks_and_link_normalization",
+      "backlog_dynamic_urls",
+      "storage_merge_conflicts"
+    ]
   },
-  "manual_chrome_e2e": false
+  "documentation": {
+    "current_behavior_contract": true,
+    "architecture_map": true,
+    "message_catalog": true,
+    "storage_catalog": true,
+    "ai_handoff_updated": true,
+    "readme_current": true,
+    "validation_current": true
+  },
+  "github_actions_expected_checks": [
+    "manifest_json_parse",
+    "javascript_syntax",
+    "deterministic_tests",
+    "package_zip"
+  ],
+  "manual_chrome_e2e": false,
+  "notes": "The 27/27 deterministic result is the PHASE 1 baseline. PHASE 2 changes documentation only; browser-specific side-panel and extension lifecycle behavior still requires manual Chrome E2E when code affecting those paths changes."
 }
