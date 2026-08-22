@@ -9,48 +9,15 @@
   const ACCOUNT_ROW_ID = 'reds-x-account-row';
   let initObserver = null;
 
-  function currentKeyword() {
-    return String(document.getElementById('reds-search')?.value || '').trim();
-  }
-
   function currentAccount() {
     return Core.normalizeAccount(document.getElementById(ACCOUNT_INPUT_ID)?.value || '');
-  }
-
-  function buildXSearchUrl() {
-    return Core.buildXSearchUrl({
-      keyword: currentKeyword(),
-      account: currentAccount(),
-      start: document.getElementById('reds-date-start')?.value || '',
-      end: document.getElementById('reds-date-end')?.value || ''
-    });
-  }
-
-  async function runXSearch() {
-    const url = buildXSearchUrl();
-    if (!url) {
-      const keywordInput = document.getElementById('reds-search');
-      const accountInput = document.getElementById(ACCOUNT_INPUT_ID);
-      (keywordInput || accountInput)?.focus();
-      return false;
-    }
-
-    try {
-      if (typeof openUrlFromSidepanel === 'function') {
-        return await openUrlFromSidepanel(url, { active: true });
-      }
-      await chrome.tabs.create({ url, active: true });
-      return true;
-    } catch (error) {
-      console.error('[Quick Links] X検索を開けませんでした。', error);
-      return false;
-    }
   }
 
   function updateButtonState() {
     const button = document.getElementById('reds-x');
     if (!button) return;
-    const canSearch = !!(currentKeyword() || currentAccount());
+    const keyword = String(document.getElementById('reds-search')?.value || '').trim();
+    const canSearch = !!(keyword || currentAccount());
     button.disabled = !canSearch;
     button.setAttribute('aria-disabled', canSearch ? 'false' : 'true');
     button.title = canSearch
@@ -153,7 +120,9 @@
       if (event.key !== 'Enter') return;
       event.preventDefault();
       event.stopPropagation();
-      runXSearch();
+      if (typeof runRedsXSearchSidepanel === 'function') {
+        runRedsXSearchSidepanel();
+      }
     });
 
     document.getElementById('reds-search')?.addEventListener('input', updateButtonState);
@@ -173,30 +142,8 @@
     });
   }
 
-  function installFunctionOverrides() {
-    // Keep every existing entry point (button, Alt+X and runtime messages) on one URL builder.
-    try { buildRedsXUrlSidepanel = buildXSearchUrl; } catch (_) {}
-    try { runRedsXSearchSidepanel = runXSearch; } catch (_) {}
-  }
-
-  function installButtonGuard() {
-    if (window.__quickLinksRedsXButtonGuardInstalled) return;
-    window.__quickLinksRedsXButtonGuardInstalled = true;
-    document.addEventListener('click', event => {
-      const button = event.target.closest?.('#reds-x');
-      if (!button) return;
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (button.disabled) return;
-      runXSearch();
-    }, true);
-  }
-
   function initialize() {
     injectStyles();
-    installFunctionOverrides();
-    installButtonGuard();
     const ready = injectAccountField();
     updateLabels();
     if (ready && initObserver) {

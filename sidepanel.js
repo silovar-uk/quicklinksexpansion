@@ -3245,6 +3245,20 @@ function buildRedsGoogleUrlSidepanel() {
 }
 
 function buildRedsXUrlSidepanel() {
+  const Core = globalThis.QuickLinksRedsXSearchCore;
+
+  if (Core?.buildXSearchUrl) {
+    const accountInput = document.getElementById('reds-x-account');
+
+    return Core.buildXSearchUrl({
+      keyword: redsQuery,
+      account: accountInput ? accountInput.value : Core.DEFAULT_X_ACCOUNT,
+      start: redsDateStart,
+      end: redsDateEnd
+    });
+  }
+
+  // Keep the mature v1.15.6 behavior available only if the core has not loaded yet.
   const query = String(redsQuery || '').trim();
   if (!query) return '';
   let xQuery = `${query} from:REDSOFFICIAL`;
