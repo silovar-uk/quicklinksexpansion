@@ -5,6 +5,7 @@
   const DEFAULT_X_ACCOUNT = 'REDSOFFICIAL';
   const ACCOUNT_INPUT_ID = 'reds-x-account';
   const ACCOUNT_ROW_ID = 'reds-x-account-row';
+  let initObserver = null;
 
   function normalizeAccount(value) {
     let raw = String(value || '').trim();
@@ -156,9 +157,9 @@
   }
 
   function injectAccountField() {
-    if (document.getElementById(ACCOUNT_INPUT_ID)) return;
+    if (document.getElementById(ACCOUNT_INPUT_ID)) return true;
     const searchRow = document.querySelector('#reds-view .reds-search-row');
-    if (!searchRow) return;
+    if (!searchRow) return false;
 
     const row = document.createElement('div');
     row.id = ACCOUNT_ROW_ID;
@@ -189,6 +190,7 @@
 
     document.getElementById('reds-search')?.addEventListener('input', updateButtonState);
     updateButtonState();
+    return true;
   }
 
   function updateLabels() {
@@ -210,6 +212,8 @@
   }
 
   function installButtonGuard() {
+    if (window.__quickLinksRedsXButtonGuardInstalled) return;
+    window.__quickLinksRedsXButtonGuardInstalled = true;
     document.addEventListener('click', event => {
       const button = event.target.closest?.('#reds-x');
       if (!button) return;
@@ -223,15 +227,29 @@
 
   function initialize() {
     injectStyles();
-    injectAccountField();
-    updateLabels();
     installFunctionOverrides();
     installButtonGuard();
+    const ready = injectAccountField();
+    updateLabels();
+    if (ready && initObserver) {
+      initObserver.disconnect();
+      initObserver = null;
+    }
+    return ready;
+  }
+
+  function initializeWhenReady() {
+    if (initialize()) return;
+    if (initObserver || !document.documentElement) return;
+    initObserver = new MutationObserver(() => {
+      initialize();
+    });
+    initObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    document.addEventListener('DOMContentLoaded', initializeWhenReady, { once: true });
   } else {
-    initialize();
+    initializeWhenReady();
   }
 })();
