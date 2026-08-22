@@ -10,6 +10,13 @@
     document.write(source);
     document.close();
 
+    // document.write() may leave the rewritten page in a loading state while sidepanel.js is still
+    // executing. Wait until the base UI and its DOMContentLoaded handlers are complete before
+    // feature modules patch or extend the page.
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+    }
+
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = chrome.runtime.getURL('qpl-design-tokens.css');
