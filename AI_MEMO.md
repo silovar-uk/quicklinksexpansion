@@ -60,7 +60,10 @@ After an extension update, already-open web tabs still contain previously inject
 
 ## REDS / X search — v1.15.6 contract
 
-The effective current implementation lives in `reds-x-search-polish.js` as a compatibility patch over the mature side-panel code.
+The current implementation is split into:
+
+- `reds-x-search-core.js` — deterministic pure rules: default `REDSOFFICIAL`, account normalization, date increment, query generation and final X URL generation;
+- `reds-x-search-polish.js` — side-panel compatibility/UI layer: account input injection, button state, Enter handling, labels and bridges to the mature side-panel entry points.
 
 Current behavior:
 
@@ -75,9 +78,9 @@ Current behavior:
 - end date -> next calendar date as exclusive `until:`;
 - button / Enter / routed `Alt+X` paths must reach the same effective search behavior.
 
-The module currently overrides `buildRedsXUrlSidepanel` and `runRedsXSearchSidepanel` and intercepts the X-search button in capture phase. This is an intentional temporary compatibility shape, not the desired final architecture.
+`reds-x-search-polish.js` still overrides `buildRedsXUrlSidepanel` and `runRedsXSearchSidepanel` and intercepts the X-search button in capture phase. This is an intentional temporary compatibility shape, not the desired final architecture.
 
-Do not remove it until its behavior is moved into the mature side-panel implementation with characterization tests passing.
+Do not remove the polish bridge until its entry-point/UI behavior is moved into the mature side-panel implementation. Keep `reds-x-search-core.js` as the deterministic source for query rules unless there is an explicit reason to replace it.
 
 ## Log states and views
 
@@ -150,6 +153,7 @@ Main Quick Links state uses the conflict-aware `quickLinksCommitState` backgroun
 ## Shared deterministic helpers
 
 - `auto-project-rules.js`: link/prompt normalization, URL canonicalization, LINE WORKS logic, automatic project classification.
+- `reds-x-search-core.js`: X account normalization, X query construction and date behavior.
 - `log-relay-core.js`: Log normalization, state transitions, 24h expiry, sort, JST day boundary, keys/constants.
 - `shortcut-registry.js`: shortcut matching and Log view mapping.
 - `qpl-design-tokens.css`: shared visual tokens and top-mode layout.
@@ -161,14 +165,15 @@ Main Quick Links state uses the conflict-aware `quickLinksCommitState` backgroun
 `sidepanel-wrapper.js` loads the base page, waits for its initialization boundary, then attaches:
 
 1. `qpl-design-tokens.css`
-2. `reds-x-search-polish.js`
-3. `shortcut-registry.js`
-4. `log-relay-core.js`
-5. `log-relay-panel.js`
-6. `log-relay-polish.js`
-7. `log-relay-toggle-panel.js`
+2. `reds-x-search-core.js`
+3. `reds-x-search-polish.js`
+4. `shortcut-registry.js`
+5. `log-relay-core.js`
+6. `log-relay-panel.js`
+7. `log-relay-polish.js`
+8. `log-relay-toggle-panel.js`
 
-Do not change the wrapper/load architecture during ordinary cleanup. The v1.15.6 X-search reliability fix depends on feature initialization occurring after the mature DOM lifecycle.
+Do not change the wrapper/load architecture during ordinary cleanup. The X-search layer requires `reds-x-search-core.js` before `reds-x-search-polish.js`, and feature initialization still occurs after the mature DOM lifecycle.
 
 `background-wrapper.js` composes:
 
@@ -179,9 +184,9 @@ Do not change the wrapper/load architecture during ordinary cleanup. The v1.15.6
 5. `log-relay-background.js`
 6. `log-relay-toggle-background.js`
 
-## Legacy/dead candidate
+## Removed legacy code
 
-`log-relay-command-open-fix.js` remains in the repository but is not loaded by current manifest/wrapper entry points and listens for the obsolete `quick-links-open-log` command. It is the first confirmed-dead candidate for LEVEL 1 cleanup.
+`log-relay-command-open-fix.js` was removed in PHASE 3 after confirming that it was not loaded by current manifest/wrapper entry points and only listened for the obsolete `quick-links-open-log` command.
 
 Do not delete other guard/fix/polish files by name alone; prove their runtime graph first.
 
@@ -203,6 +208,8 @@ Characterization baseline now includes:
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
 
+The REDS/X tests import `reds-x-search-core.js` directly, so the deterministic production query rules are tested without DOM instrumentation.
+
 Covered behavior includes:
 
 - Log transitions / 24h expiry / shortcuts;
@@ -222,9 +229,9 @@ GitHub Actions must continue to run:
 ## Cleanup sequence
 
 - PHASE 1 — characterization tests and `CURRENT_BEHAVIOR.md`: completed.
-- PHASE 2 — documentation and architecture cleanup: current.
-- PHASE 3 — confirmed dead code and low-risk pure-helper cleanup.
-- PHASE 4 — absorb effective X-search behavior into mature side-panel code, then remove the compatibility override.
+- PHASE 2 — documentation and architecture cleanup: completed.
+- PHASE 3 — confirmed dead code and low-risk pure-helper cleanup: current.
+- PHASE 4 — absorb the remaining X-search UI/entry-point bridge into mature side-panel code, then remove the compatibility override.
 - PHASE 5 — revisit giant-file boundaries only after earlier phases are stable.
 
 ## Update workflow for future AI sessions
