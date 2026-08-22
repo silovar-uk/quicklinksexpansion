@@ -2,60 +2,28 @@
   if (window.__quickLinksRedsXSearchPolishLoaded) return;
   window.__quickLinksRedsXSearchPolishLoaded = true;
 
-  const DEFAULT_X_ACCOUNT = 'REDSOFFICIAL';
+  const Core = globalThis.QuickLinksRedsXSearchCore;
+  if (!Core) throw new Error('QuickLinksRedsXSearchCore is required before reds-x-search-polish.js');
+
   const ACCOUNT_INPUT_ID = 'reds-x-account';
   const ACCOUNT_ROW_ID = 'reds-x-account-row';
   let initObserver = null;
-
-  function normalizeAccount(value) {
-    let raw = String(value || '').trim();
-    if (!raw) return '';
-
-    raw = raw.replace(/^https?:\/\/(?:www\.)?(?:x|twitter)\.com\//i, '');
-    raw = raw.split(/[/?#]/, 1)[0];
-    raw = raw.replace(/^@+/, '').trim();
-    return raw;
-  }
-
-  function addDaysToDateValue(value, days) {
-    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) return '';
-    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-    date.setUTCDate(date.getUTCDate() + Number(days || 0));
-    return date.toISOString().slice(0, 10);
-  }
 
   function currentKeyword() {
     return String(document.getElementById('reds-search')?.value || '').trim();
   }
 
   function currentAccount() {
-    return normalizeAccount(document.getElementById(ACCOUNT_INPUT_ID)?.value || '');
+    return Core.normalizeAccount(document.getElementById(ACCOUNT_INPUT_ID)?.value || '');
   }
 
   function buildXSearchUrl() {
-    const keyword = currentKeyword();
-    const account = currentAccount();
-    if (!keyword && !account) return '';
-
-    let xQuery = '';
-    if (keyword) {
-      xQuery = keyword;
-      if (account) xQuery += ` from:${account}`;
-    } else {
-      // No keyword: search the account name itself, including mentions and references.
-      xQuery = account;
-    }
-
-    const start = String(document.getElementById('reds-date-start')?.value || '').trim();
-    const end = String(document.getElementById('reds-date-end')?.value || '').trim();
-    if (start) xQuery += ` since:${start}`;
-    if (end) {
-      const exclusiveEnd = addDaysToDateValue(end, 1);
-      if (exclusiveEnd) xQuery += ` until:${exclusiveEnd}`;
-    }
-
-    return `https://x.com/search?q=${encodeURIComponent(xQuery)}&f=live`;
+    return Core.buildXSearchUrl({
+      keyword: currentKeyword(),
+      account: currentAccount(),
+      start: document.getElementById('reds-date-start')?.value || '',
+      end: document.getElementById('reds-date-end')?.value || ''
+    });
   }
 
   async function runXSearch() {
@@ -167,7 +135,7 @@
       <label class="reds-x-account-label" for="${ACCOUNT_INPUT_ID}">Xアカウント</label>
       <div class="reds-x-account-wrap">
         <span class="reds-x-account-at" aria-hidden="true">@</span>
-        <input id="${ACCOUNT_INPUT_ID}" type="text" value="${DEFAULT_X_ACCOUNT}" autocomplete="off" spellcheck="false" aria-label="X検索アカウント">
+        <input id="${ACCOUNT_INPUT_ID}" type="text" value="${Core.DEFAULT_X_ACCOUNT}" autocomplete="off" spellcheck="false" aria-label="X検索アカウント">
       </div>
       <div class="reds-x-account-hint">変更可。検索語が空なら、このアカウント名そのものを検索します。</div>
     `;
@@ -176,7 +144,7 @@
     const accountInput = row.querySelector(`#${ACCOUNT_INPUT_ID}`);
     accountInput?.addEventListener('input', updateButtonState);
     accountInput?.addEventListener('blur', () => {
-      const normalized = normalizeAccount(accountInput.value);
+      const normalized = Core.normalizeAccount(accountInput.value);
       if (normalized && normalized !== accountInput.value) accountInput.value = normalized;
       updateButtonState();
     });
