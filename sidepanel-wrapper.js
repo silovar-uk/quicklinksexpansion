@@ -5,7 +5,7 @@
     const source = await response.text();
 
     // Keep the mature sidepanel.html as the source of truth, but avoid regex-based HTML rewriting.
-    // After the core page has loaded, attach the shared design layer and Log Relay modules explicitly.
+    // After the core page has loaded, attach the shared design layer and focused feature modules explicitly.
     document.open();
     document.write(source);
     document.close();
@@ -23,6 +23,7 @@
       document.body.appendChild(script);
     });
 
+    await loadScript('reds-x-search-polish.js');
     await loadScript('shortcut-registry.js');
     await loadScript('log-relay-core.js');
     await loadScript('log-relay-panel.js');
