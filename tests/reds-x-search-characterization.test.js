@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const core = require('../reds-x-search-core.js');
 
 function queryFrom(url) {
@@ -51,4 +53,26 @@ test('X date range keeps start inclusive and end as next-day exclusive', () => {
     })),
     '移籍 from:REDSOFFICIAL since:2026-08-20 until:2026-08-23'
   );
+});
+
+test('mature sidepanel owns effective X URL construction without runtime override', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'sidepanel.js'), 'utf8');
+
+  assert.match(source, /QuickLinksRedsXSearchCore/);
+  assert.match(source, /Core\.buildXSearchUrl/);
+  assert.match(source, /accountInput \? accountInput\.value : Core\.DEFAULT_X_ACCOUNT/);
+  assert.match(source, /getElementById\('reds-x'\)\?\.addEventListener\('click', runRedsXSearchSidepanel\)/);
+  assert.match(source, /if \(isXSearchShortcut\) runRedsXSearchSidepanel\(\)/);
+  assert.match(source, /if \(message\.action === 'search-x'\) runRedsXSearchSidepanel\(\)/);
+});
+
+test('X polish no longer overrides mature functions or capture-intercepts the X button', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'reds-x-search-polish.js'), 'utf8');
+
+  assert.doesNotMatch(source, /buildRedsXUrlSidepanel\s*=\s*buildXSearchUrl/);
+  assert.doesNotMatch(source, /runRedsXSearchSidepanel\s*=\s*runXSearch/);
+  assert.doesNotMatch(source, /stopImmediatePropagation\(\)/);
+  assert.doesNotMatch(source, /installFunctionOverrides|installButtonGuard/);
+  assert.match(source, /if \(typeof runRedsXSearchSidepanel === 'function'\)/);
+  assert.match(source, /runRedsXSearchSidepanel\(\)/);
 });
