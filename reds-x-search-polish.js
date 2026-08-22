@@ -191,6 +191,18 @@
     updateButtonState();
   }
 
+  function updateLabels() {
+    const buttonLabel = document.querySelector('#reds-x > span');
+    if (buttonLabel) buttonLabel.textContent = '𝕏 X検索';
+
+    document.querySelectorAll('.help-guide-row').forEach(row => {
+      const text = row.textContent || '';
+      if (!text.includes('Alt + X') || !text.includes('公式X')) return;
+      const description = row.querySelector('span');
+      if (description) description.textContent = '入力した語と指定アカウントでXを検索します。検索語が空ならアカウント名を検索します。';
+    });
+  }
+
   function installFunctionOverrides() {
     // Keep every existing entry point (button, Alt+X and runtime messages) on one URL builder.
     try { buildRedsXUrlSidepanel = buildXSearchUrl; } catch (_) {}
@@ -212,6 +224,7 @@
   function initialize() {
     injectStyles();
     injectAccountField();
+    updateLabels();
     installFunctionOverrides();
     installButtonGuard();
   }
