@@ -31,6 +31,7 @@ manifest.json
       └─ sidepanel-wrapper.js
          ├─ sidepanel.html / sidepanel.js
          ├─ qpl-design-tokens.css
+         ├─ reds-x-search-core.js
          ├─ reds-x-search-polish.js
          ├─ shortcut-registry.js
          ├─ log-relay-core.js
@@ -60,9 +61,10 @@ manifest.json
 
 ### REDS / X search
 
-- `reds-x-search-polish.js` currently contains the **effective v1.15.6 X-search behavior**: editable `REDSOFFICIAL` default account, handle normalization, account-only search, date query behavior and button/Enter integration.
-- It currently overrides mature `sidepanel.js` X-search functions and intercepts the X-search button in the capture phase.
-- This is a deliberate compatibility patch, but it is a future LEVEL 2 cleanup target after characterization tests exist.
+- `reds-x-search-core.js` owns the deterministic, DOM-free X-search rules: default `REDSOFFICIAL`, account normalization, end-date increment, query construction and final X URL construction. It is CommonJS-compatible so tests can exercise the exact production logic directly.
+- `reds-x-search-polish.js` now owns only the side-panel compatibility/UI layer: editable account field injection, button state, Enter handling, labels, button interception and bridging the mature `sidepanel.js` entry points to the core URL builder.
+- `sidepanel-wrapper.js` must load `reds-x-search-core.js` before `reds-x-search-polish.js`.
+- The polish layer still overrides mature `sidepanel.js` X-search functions and intercepts the X-search button in capture phase. Removing that compatibility bridge remains a LEVEL 2 task.
 
 ### Log Relay
 
@@ -93,12 +95,13 @@ Chrome command (Alt+1 / Alt+2 / Alt+3 / configured clear-search)
 ```text
 button / Enter / Alt+X or routed side-panel action
   -> effective runRedsXSearchSidepanel
-  -> reds-x-search-polish.js override
-  -> build effective X query
+  -> reds-x-search-polish.js compatibility bridge
+  -> reds-x-search-core.js
+  -> deterministic query + X URL
   -> quickLinksOpenTab / chrome.tabs.create path
 ```
 
-Current query contract is covered by `tests/reds-x-search-characterization.test.js`.
+Current query contract is covered by `tests/reds-x-search-characterization.test.js`, which imports `reds-x-search-core.js` directly.
 
 ### Log capture
 
@@ -145,7 +148,7 @@ The open call must begin in the original eligible user-gesture turn. Do not intr
 - `logRelayStore` — Log Relay data operations (`list`, `add`, `updateMemo`, `moveMany`, `deleteMany`, `setSort`, `rebuildIndex`).
 - `logRelayPanelPresence` — current LOG-mode panel presence sent to toggle background logic.
 
-Message names are currently string literals in their owning modules. Do not centralize them during LEVEL 0 cleanup.
+Message names are currently string literals in their owning modules. Do not centralize them during low-risk cleanup merely for stylistic consistency.
 
 ## 5. Storage catalog
 
@@ -195,7 +198,7 @@ Current deterministic suite:
 - `tests/auto-project-rules-characterization.test.js`
 - `tests/background-storage-and-dynamic-url-characterization.test.js`
 
-The characterization tests are intentionally allowed to assert current implementation details when needed to prevent behavior drift during refactoring.
+The REDS/X characterization tests now exercise the pure production core directly. The other characterization tests may still assert implementation details when needed to prevent behavior drift during refactoring.
 
 ## 8. Cleanup risk map
 
@@ -205,12 +208,16 @@ Safe: current behavior/architecture/validation documentation.
 
 ### LEVEL 1 — low risk with tests
 
-- Remove files proven unreferenced. The first confirmed-dead Log Relay shim has now been removed.
-- Extract deterministic pure helpers without changing callers or storage/message contracts.
+Completed so far:
+
+- removed the confirmed-dead `log-relay-command-open-fix.js` shim;
+- extracted deterministic REDS/X search logic into `reds-x-search-core.js` without changing user-visible behavior.
+
+Potential future LEVEL 1 work must still be judged by change surface. The duplicated dynamic Backlog/JST helpers span three large runtime files, so they are not being consolidated merely because the logic is similar.
 
 ### LEVEL 2 — medium risk
 
-- Move the effective X-search implementation from `reds-x-search-polish.js` into the mature side-panel implementation and remove runtime function overrides.
+- Move the remaining X-search UI/entry-point bridge from `reds-x-search-polish.js` into the mature side-panel implementation and remove runtime function overrides/capture interception.
 - Split major feature responsibilities out of `sidepanel.js` or `content-floating-search.js`.
 
 ### LEVEL 3 — high risk / do not touch during ordinary cleanup
