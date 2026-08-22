@@ -1,7 +1,7 @@
 # AI handoff memo — Quick Project Links / Log Relay
 
-Updated: 2026-08-14
-Version: 1.15.2
+Updated: **2026-08-22**  
+Version: **1.15.6**
 
 ## Product rule
 
@@ -14,10 +14,19 @@ Log Relay follows one rule: **capture now, organize later**.
 - Existing logs are shown only inside the side panel.
 - Preserve Links / REDS / Prompt behavior unless a request explicitly changes it.
 
+Before cleanup/refactoring, read:
+
+1. `CURRENT_BEHAVIOR.md` — user-visible behavior contract.
+2. `ARCHITECTURE.md` — runtime graph, messages, storage and cleanup risk map.
+3. this file — implementation guardrails and handoff notes.
+
 ## Canonical shortcuts
 
+- `Alt + 1`: open Links.
+- `Alt + 2`: open REDS.
+- `Alt + 3`: open Prompt.
 - `Alt + M`: add one-line Log Relay memo on a normal web page.
-- `Alt + Shift + M`: open the side panel directly in LOG mode.
+- `Alt + Shift + M`: toggle the Log Relay side panel.
 - In LOG mode:
   - `Alt + Shift + 1`: すべて
   - `Alt + Shift + 2`: 未処理
@@ -25,17 +34,50 @@ Log Relay follows one rule: **capture now, organize later**.
   - `Alt + Shift + 4`: 完了
   - `Alt + Shift + 5`: 削除
 
-`shortcut-registry.js` is the canonical JavaScript registry for Log shortcuts and documents the existing legacy Quick Links shortcuts.
+`shortcut-registry.js` is the canonical shared JavaScript registry for Log shortcuts and documents existing legacy Quick Links shortcut concepts.
 
-**Shifted-number guardrail:** `Alt+Shift+1..5` must be matched primarily from `KeyboardEvent.code` (`Digit1..5` / `Numpad1..5`), not only from `KeyboardEvent.key`. On common keyboard layouts Shift changes `key` to a symbol such as `!`, so a numeric `key`-only test can pass while the real shortcut fails.
+### Shifted-number guardrail
 
-**M-key safety exception:** `log-relay-capture.js` must also keep a minimal direct M-key matcher for `Alt+M` and `Alt+Shift+M`. v1.15.0 made capture activation depend entirely on `globalThis.QuickLinksShortcuts`; if that shared registry was unavailable in a content-script context, `Alt+M` became silent. Keep the fallback behavior exactly aligned with the registry. Do not add unrelated bindings there.
+`Alt+Shift+1..5` must be matched primarily from `KeyboardEvent.code` (`Digit1..5` / `Numpad1..5`), not only `KeyboardEvent.key`. Shift changes `key` to symbols on common layouts.
 
-**Side-panel user-gesture guardrail:** `chrome.sidePanel.open()` must be initiated in the same user-action turn as the keyboard shortcut. Do not `await` storage or other asynchronous work before starting `sidePanel.open()`. `log-relay-background.js` starts the transient open-request write and `sidePanel.open()` in the same synchronous section, then awaits both.
+### M-key safety exception
 
-Chrome allows only four manifest-level suggested command shortcuts. The suggested slots remain Alt+1 / Alt+2 / Alt+3 / Alt+Shift+M. Alt+M is detected directly by the content script; `quick-links-add-log` remains available as a command without a suggested key.
+`log-relay-capture.js` keeps a minimal direct M-key matcher so `Alt+M` remains available even if the shared shortcut registry is unavailable in a content-script context. Keep fallback behavior aligned with the registry.
 
-After an extension update, already-open web tabs still contain the previously injected content scripts. A page reload is required before the newly installed content script can handle `Alt+M` on those tabs.
+### Side-panel user-gesture guardrail
+
+`chrome.sidePanel.open()` must be initiated in the same eligible user-action turn as the keyboard shortcut. Do not `await` storage, `tabs.query()` or unrelated work before starting the open call when handling the direct command path.
+
+`log-relay-toggle-background.js` currently owns the `quick-links-toggle-log` command path. It starts the transient open-request write and `chrome.sidePanel.open()` without awaiting between them.
+
+`log-relay-content-command-guard.js` prevents the older page-side key path from double-firing `Alt+Shift+M`.
+
+`log-relay-toggle-panel.js` handles the in-panel close case and reports LOG-panel presence back to the service worker.
+
+Do not consolidate these layers solely for DRYness.
+
+After an extension update, already-open web tabs still contain previously injected content scripts. Refresh affected pages after reloading the extension.
+
+## REDS / X search — v1.15.6 contract
+
+The effective current implementation lives in `reds-x-search-polish.js` as a compatibility patch over the mature side-panel code.
+
+Current behavior:
+
+- default account: `REDSOFFICIAL`;
+- account input is editable;
+- `@handle`, `x.com/handle`, `twitter.com/handle` are normalized;
+- keyword + account -> `keyword from:account`;
+- keyword only -> keyword search;
+- account only -> search the account name itself;
+- both blank -> do not search;
+- start date -> inclusive `since:`;
+- end date -> next calendar date as exclusive `until:`;
+- button / Enter / routed `Alt+X` paths must reach the same effective search behavior.
+
+The module currently overrides `buildRedsXUrlSidepanel` and `runRedsXSearchSidepanel` and intercepts the X-search button in capture phase. This is an intentional temporary compatibility shape, not the desired final architecture.
+
+Do not remove it until its behavior is moved into the mature side-panel implementation with characterization tests passing.
 
 ## Log states and views
 
@@ -54,13 +96,13 @@ Views:
 - `done`
 - `trash`
 
-Trash is recoverable for 24 hours. `trashedAt + 24h` is the deletion boundary. Chrome alarms schedule the nearest expiry; startup and initialization also purge expired trash.
+Trash is recoverable for 24 hours. `trashedAt + 24h` is the deletion boundary.
 
-## Storage architecture
+## Log storage architecture
 
 ### Source of truth
 
-Each Log Relay entry remains one `chrome.storage.local` record:
+Each Log Relay entry is one `chrome.storage.local` record:
 
 `logRelayEntry:<id>`
 
@@ -77,19 +119,19 @@ Each Log Relay entry remains one `chrome.storage.local` record:
 
 ### Index
 
-`logRelayIndex` contains entry IDs. It is a rebuildable index/cache, not the source of truth. Rebuild it from existing entry keys when missing or inconsistent.
+`logRelayIndex` contains entry IDs. It is rebuildable and is not the entry source of truth.
 
-### UI preferences
+### UI preference
 
-`logRelaySortDirection` remains in `chrome.storage.local`.
+`logRelaySortDirection` remains in local storage.
 
 ### Transient open request
 
-`logRelayOpenPanelRequest` uses `chrome.storage.session` when available. It is transient UI coordination, not user data. A local-storage fallback exists only for compatibility.
+`logRelayOpenPanelRequest` uses `chrome.storage.session` when available with local-storage fallback for compatibility.
 
 ## Mutation ownership
 
-**Only `log-relay-background.js` should mutate Log Relay entries.**
+**Only `log-relay-background.js` should mutate Log Relay entry records.**
 
 Capture and panel code send `logRelayStore` runtime messages. Supported actions:
 
@@ -101,57 +143,99 @@ Capture and panel code send `logRelayStore` runtime messages. Supported actions:
 - `setSort`
 - `rebuildIndex`
 
-Bulk changes use one `chrome.storage.local.set()` for entry updates rather than one write per entry. A small in-service-worker mutation queue serializes concurrent Log mutations while the worker is alive.
+Do not reintroduce direct Log entry `chrome.storage.local.set/remove` calls from capture or panel code.
 
-Do not reintroduce direct `chrome.storage.local.set/remove` calls for Log entries from capture or panel code.
+Main Quick Links state uses the conflict-aware `quickLinksCommitState` background path. Do not replace it with naive view-level store replacement.
 
 ## Shared deterministic helpers
 
-- `log-relay-core.js`: normalization, state transitions, 24h expiry, sort, JST day boundary, keys/constants. CommonJS-compatible for tests.
-- `shortcut-registry.js`: canonical Log keyboard matching and view mapping. CommonJS-compatible for tests.
-- `qpl-design-tokens.css`: shared surface/border/type/spacing/radius/shadow tokens plus the four-mode one-row tab layout.
+- `auto-project-rules.js`: link/prompt normalization, URL canonicalization, LINE WORKS logic, automatic project classification.
+- `log-relay-core.js`: Log normalization, state transitions, 24h expiry, sort, JST day boundary, keys/constants.
+- `shortcut-registry.js`: shortcut matching and Log view mapping.
+- `qpl-design-tokens.css`: shared visual tokens and top-mode layout.
 
-## Side-panel integration
+## Current side-panel integration
 
-`sidepanel.html` remains the mature core UI source of truth. `sidepanel-wrapper.js` loads the core page as-is, then attaches:
+`sidepanel.html` / `sidepanel.js` remain the mature core UI source of truth.
+
+`sidepanel-wrapper.js` loads the base page, waits for its initialization boundary, then attaches:
 
 1. `qpl-design-tokens.css`
-2. `shortcut-registry.js`
-3. `log-relay-core.js`
-4. `log-relay-panel.js`
+2. `reds-x-search-polish.js`
+3. `shortcut-registry.js`
+4. `log-relay-core.js`
+5. `log-relay-panel.js`
+6. `log-relay-polish.js`
+7. `log-relay-toggle-panel.js`
 
-`background-wrapper.js` remains a simple `importScripts` composition point and loads shared helpers before the mature background and Log Relay service code.
+Do not change the wrapper/load architecture during ordinary cleanup. The v1.15.6 X-search reliability fix depends on feature initialization occurring after the mature DOM lifecycle.
+
+`background-wrapper.js` composes:
+
+1. `shortcut-registry.js`
+2. `log-relay-core.js`
+3. `background.js`
+4. `search-auto-clear-background.js`
+5. `log-relay-background.js`
+6. `log-relay-toggle-background.js`
+
+## Legacy/dead candidate
+
+`log-relay-command-open-fix.js` remains in the repository but is not loaded by current manifest/wrapper entry points and listens for the obsolete `quick-links-open-log` command. It is the first confirmed-dead candidate for LEVEL 1 cleanup.
+
+Do not delete other guard/fix/polish files by name alone; prove their runtime graph first.
 
 ## UI principles
 
-- Four top modes must fit on one row: Links / REDS / Prompt / LOG.
-- Shared mode buttons use `qpl-design-tokens.css`; Log Relay must not restyle the three other tabs from its private runtime CSS.
-- Preserve the current useful type hierarchy; do not solve density by endlessly shrinking text.
-- Bulk action controls appear only when something is selected.
-- Status tabs are sticky inside the LOG scroll area.
+- Four top modes remain Links / REDS / Prompt / LOG.
+- Log Relay keeps its distinct light-blue translucent visual language.
+- Quick Links header text must remain readable in LOG mode.
+- Bulk action controls appear only when needed.
+- Status tabs remain sticky inside LOG.
+- Preserve useful type hierarchy; do not solve density by endlessly shrinking text.
 
-## Tests and packaging
+## Tests
 
-GitHub Actions must run, in this order:
+Characterization baseline now includes:
 
-1. manifest JSON parse
-2. `node --check` for JavaScript
-3. `node --test tests/*.test.js`
-4. package ZIP
+- `tests/log-relay-core.test.js`
+- `tests/reds-x-search-characterization.test.js`
+- `tests/auto-project-rules-characterization.test.js`
+- `tests/background-storage-and-dynamic-url-characterization.test.js`
 
-Tests include Log state transitions, trash 24h boundary, sort direction, index normalization, `Alt+M`, `Alt+Shift+M`, and realistic Alt+Shift+1..5 view mapping using `KeyboardEvent.code` even when Shift changes `event.key`.
+Covered behavior includes:
 
-The installable ZIP excludes `.github`, backup, tests, dist, and large unused Gemini source images.
+- Log transitions / 24h expiry / shortcuts;
+- REDS X default account / normalization / query generation / dates;
+- LINE WORKS channel canonicalization;
+- link input normalization;
+- Backlog dynamic URL resolution in JST calendar boundaries;
+- state merge/conflict behavior.
+
+GitHub Actions must continue to run:
+
+1. manifest JSON parse;
+2. `node --check` for JavaScript;
+3. `node --test tests/*.test.js`;
+4. ZIP packaging.
+
+## Cleanup sequence
+
+- PHASE 1 — characterization tests and `CURRENT_BEHAVIOR.md`: completed.
+- PHASE 2 — documentation and architecture cleanup: current.
+- PHASE 3 — confirmed dead code and low-risk pure-helper cleanup.
+- PHASE 4 — absorb effective X-search behavior into mature side-panel code, then remove the compatibility override.
+- PHASE 5 — revisit giant-file boundaries only after earlier phases are stable.
 
 ## Update workflow for future AI sessions
 
 1. Preserve behavior unless explicitly asked to change it.
-2. Keep Log entry mutations in background.
-3. Keep `Alt+M` robust even if the shared shortcut registry is unavailable.
-4. Keep `Alt+Shift+1..5` physical-key-safe by preferring `KeyboardEvent.code`.
-5. Start `chrome.sidePanel.open()` before awaiting unrelated asynchronous work in a shortcut/user-action handler.
-6. Prefer shared core helpers over duplicated business logic.
-7. Update tests when state/shortcut behavior changes.
-8. Update this memo when architecture, shortcut, storage schema, or packaging changes.
+2. Read `CURRENT_BEHAVIOR.md` and `ARCHITECTURE.md` before refactoring.
+3. Keep Log mutations in background.
+4. Keep `Alt+M` robust across content-script registry failures.
+5. Keep `Alt+Shift+1..5` physical-key-safe.
+6. Preserve the original user-gesture timing for `sidePanel.open()`.
+7. Prefer characterization tests before moving risky behavior.
+8. Use small responsibility-level commits.
 9. Run validation before packaging.
-10. Update GitHub and provide the user a ZIP at the exact same version.
+10. For manual distribution, provide the requested rootless ZIP with `manifest.json` directly at ZIP root.
