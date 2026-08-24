@@ -17,10 +17,15 @@
       await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
     }
 
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('qpl-design-tokens.css');
-    document.head.appendChild(link);
+    const loadStylesheet = href => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = chrome.runtime.getURL(href);
+      document.head.appendChild(link);
+    };
+
+    loadStylesheet('qpl-design-tokens.css');
+    loadStylesheet('sidepanel-toolbar-polish.css');
 
     const loadScript = src => new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -30,6 +35,7 @@
       document.body.appendChild(script);
     });
 
+    await loadScript('sidepanel-toolbar-polish.js');
     await loadScript('reds-x-search-core.js');
     await loadScript('reds-x-search-polish.js');
     await loadScript('shortcut-registry.js');

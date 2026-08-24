@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.7",
-  "description": "REDSを初期値にした編集可能なXアカウント検索と、Alt+Shift+MによるLog Relay開閉に対応",
+  "version": "1.15.8",
+  "description": "サイドパネルのページ追加・並び替え・リンク選択を1行のコンパクト操作バーに整理",
   "permissions": [
     "sidePanel",
     "storage",
