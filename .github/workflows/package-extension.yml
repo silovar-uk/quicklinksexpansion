@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package:
@@ -87,7 +87,7 @@ jobs:
 
           test -f "$zip_path"
 
-      - name: Verify ZIP root structure
+      - name: Verify ZIP root structure and Prompt shortcut file
         shell: bash
         run: |
           set -euo pipefail
@@ -100,12 +100,27 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Fxq 'prompt-shortcut-focus.js' <<< "$entries"; then
+            echo 'prompt-shortcut-focus.js is missing from ZIP root.' >&2
+            exit 1
+          fi
+
           if grep -Eq '^quicklinksexpansion/' <<< "$entries"; then
             echo 'Unexpected quicklinksexpansion/ parent directory exists in ZIP.' >&2
             exit 1
           fi
 
-          echo 'ZIP root structure is valid.'
+          node <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
+          if (!scripts.includes('prompt-shortcut-focus.js')) {
+            console.error('manifest.json does not load prompt-shortcut-focus.js as a content script.');
+            process.exit(1);
+          }
+          NODE
+
+          echo 'ZIP root and Prompt Alt+Q wiring are valid.'
           printf '%s\n' "$entries" | head -40
 
       - name: Upload ZIP
@@ -115,3 +130,22 @@ jobs:
           path: dist/quicklinksexpansion-v${{ steps.version.outputs.version }}.zip
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish validated ZIP to repository
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          zip_name="quicklinksexpansion-v${version}.zip"
+          mkdir -p release
+          cp "dist/${zip_name}" "release/${zip_name}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "release/${zip_name}"
+          if git diff --cached --quiet; then
+            echo 'Validated ZIP is already current.'
+          else
+            git commit -m "Publish validated extension ZIP v${version} [skip ci]"
+            git push
+          fi
