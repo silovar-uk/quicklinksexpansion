@@ -14,7 +14,8 @@
     sidepanel: Object.freeze({
       links: '#link-list .link-item .item-title',
       prompts: '#prompt-list .prompt-card [data-prompt-copy]',
-      reds: '#reds-search'
+      reds: '#reds-search',
+      log: '#log-relay-root .lr-list [data-lr-id] .lr-row-check'
     }),
     floating: Object.freeze({
       links: '#ql-list [data-open-url]',
@@ -32,6 +33,9 @@
   function sidepanelMode(doc) {
     const body = doc?.body;
     if (!body) return '';
+    if (body.classList?.contains?.('log-relay-active') || doc.getElementById?.('log-relay-mode')?.classList?.contains?.('active')) {
+      return 'log';
+    }
     for (const mode of ['links', 'prompts', 'reds']) {
       if (body.classList?.contains?.(`mode-${mode}`)) return mode;
       if (doc.getElementById?.(`mode-${mode}`)?.classList?.contains?.('active')) return mode;
@@ -135,7 +139,7 @@
 
   function movePrimary(context, direction) {
     if (!direction) return false;
-    if (!['link', 'prompt'].includes(Core.getPrimaryRole(context?.mode))) return false;
+    if (!['link', 'prompt', 'log'].includes(Core.getPrimaryRole(context?.mode))) return false;
 
     const targets = getPrimaryTargets(context);
     if (!targets.length) return false;
@@ -164,7 +168,7 @@
 
     if (action === Core.ACTIONS.SELECT_PRIMARY) {
       // Consume SELECT_PRIMARY for every recognized mode even when the list is empty.
-      // This prevents the mature legacy handlers from falling through and switching modes.
+      // This prevents mature legacy handlers from falling through and changing modes.
       consume(event);
       focusPrimary(context);
       return true;
