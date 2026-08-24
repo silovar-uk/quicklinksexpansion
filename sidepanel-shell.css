@@ -1,0 +1,315 @@
+/* v1.15.9: quiet side-panel shell — header, mode navigation, shared search, Links toolbar */
+
+/* Header: utility first, brand quiet. */
+header {
+  background: var(--qpl-surface) !important;
+  color: var(--qpl-text) !important;
+  padding: 5px 8px 6px !important;
+  gap: 5px !important;
+  border-bottom: 1px solid var(--qpl-border) !important;
+  box-shadow: none !important;
+}
+header .header-top {
+  min-height: var(--qpl-control-h-sm);
+  justify-content: flex-end !important;
+  gap: 2px;
+}
+header .header-top > div {
+  gap: 2px !important;
+}
+header .brand-icon,
+header h1 {
+  display: none !important;
+}
+header .header-top .header-btn,
+header .header-top .help-header-btn {
+  width: var(--qpl-control-h-sm) !important;
+  min-width: var(--qpl-control-h-sm) !important;
+  height: var(--qpl-control-h-sm) !important;
+  min-height: var(--qpl-control-h-sm) !important;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  background: var(--qpl-action-quiet-bg) !important;
+  color: var(--qpl-muted) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+header .header-top .header-btn:hover,
+header .header-top .help-header-btn:hover {
+  background: var(--qpl-action-quiet-hover) !important;
+  border-color: var(--qpl-border) !important;
+  color: var(--qpl-text-strong) !important;
+}
+header .header-top .header-btn:focus-visible,
+header .header-top .help-header-btn:focus-visible {
+  outline: 2px solid #94a3b8 !important;
+  outline-offset: 1px !important;
+  box-shadow: none !important;
+}
+header .header-icon-sm,
+header .help-header-btn svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+/* Shared search is the visual anchor of the shell. */
+.header-search-area {
+  width: 100%;
+}
+.search-input {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 6px 72px 6px 10px !important;
+  border: 1px solid var(--qpl-border) !important;
+  border-radius: 7px !important;
+  background: var(--qpl-surface) !important;
+  color: var(--qpl-text) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+.search-input::placeholder {
+  color: var(--qpl-muted-soft) !important;
+}
+.search-input:hover {
+  background: var(--qpl-surface) !important;
+  border-color: var(--qpl-border-strong) !important;
+}
+.search-input:focus {
+  background: var(--qpl-surface) !important;
+  color: var(--qpl-text-strong) !important;
+  border-color: #94a3b8 !important;
+  box-shadow: var(--qpl-focus-ring) !important;
+}
+.btn-clear-search {
+  right: 43px !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  border-radius: 5px !important;
+  color: var(--qpl-muted-soft) !important;
+}
+.search-input:focus + .btn-clear-search,
+.btn-clear-search:hover {
+  color: var(--qpl-text) !important;
+  background: var(--qpl-surface-soft) !important;
+}
+.search-shortcut-hint {
+  right: 6px !important;
+  min-height: 17px !important;
+  padding: 0 4px !important;
+  border: 1px solid var(--qpl-border) !important;
+  border-bottom-width: 1px !important;
+  border-radius: 4px !important;
+  background: var(--qpl-surface-soft) !important;
+  color: var(--qpl-muted) !important;
+  box-shadow: none !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+}
+.search-input:focus ~ .search-shortcut-hint {
+  background: var(--qpl-surface-soft) !important;
+  color: var(--qpl-muted) !important;
+  border-color: var(--qpl-border) !important;
+}
+
+/* Modes: flat navigation, not four cards. */
+.app-mode-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  align-items: stretch !important;
+  padding: 0 8px !important;
+  background: var(--qpl-surface) !important;
+  border-bottom: 1px solid var(--qpl-border) !important;
+}
+.app-mode-tabs .app-mode-btn,
+#log-relay-mode {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 31px !important;
+  height: 31px !important;
+  margin: 0 !important;
+  padding: 0 4px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--qpl-muted) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  transition: color .12s ease, background .12s ease, border-color .12s ease !important;
+}
+.app-mode-tabs .app-mode-btn:hover,
+#log-relay-mode:hover {
+  background: var(--qpl-surface-soft) !important;
+  color: var(--qpl-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.app-mode-tabs .app-mode-btn:focus-visible,
+#log-relay-mode:focus-visible {
+  outline: 2px solid #94a3b8 !important;
+  outline-offset: -2px !important;
+  box-shadow: none !important;
+}
+.app-mode-tabs .app-mode-title {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: inherit !important;
+}
+.app-mode-tabs .app-mode-shortcut {
+  display: none !important;
+}
+.app-mode-tabs .app-mode-btn.active {
+  background: transparent !important;
+  color: var(--qpl-text-strong) !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+}
+.app-mode-tabs .app-mode-btn.active.links { border-bottom-color: var(--qpl-mode-links) !important; }
+.app-mode-tabs .app-mode-btn.active.reds { border-bottom-color: var(--qpl-mode-reds) !important; }
+.app-mode-tabs .app-mode-btn.active.prompts { border-bottom-color: var(--qpl-mode-prompts) !important; }
+body.log-relay-active .app-mode-tabs #log-relay-mode.app-mode-btn.active {
+  background: transparent !important;
+  color: #0c4a6e !important;
+  border: 0 !important;
+  border-bottom: 2px solid var(--qpl-mode-log) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Preserve Log Relay's light-blue atmosphere while keeping the shell quiet. */
+body.log-relay-active header .brand-icon,
+body.log-relay-active header h1 {
+  display: none !important;
+}
+body.log-relay-active header .header-top .header-btn,
+body.log-relay-active header .header-top .help-header-btn {
+  box-shadow: none !important;
+}
+
+/* v1.15.8 toolbar behavior, promoted into the shell instead of another polish layer. */
+.link-list-toolbar.qpl-compact-toolbar {
+  min-height: 28px;
+  margin: 5px 8px 0;
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.link-list-toolbar.qpl-compact-toolbar::-webkit-scrollbar { display: none; }
+
+.link-list-toolbar .btn-add-current.compact-add-current {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: var(--qpl-control-h-sm) !important;
+  height: var(--qpl-control-h-sm) !important;
+  flex: 0 0 auto;
+  padding: 2px 6px !important;
+  gap: 3px !important;
+  border: 1px solid var(--qpl-border) !important;
+  border-radius: 6px !important;
+  background: var(--qpl-surface) !important;
+  color: #344054 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+.link-list-toolbar .btn-add-current.compact-add-current:hover {
+  background: var(--qpl-surface-soft) !important;
+  border-color: #b8c7da !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.link-list-toolbar .btn-add-current.compact-add-current:active {
+  background: #f1f5f9 !important;
+  transform: none !important;
+}
+.link-list-toolbar .btn-add-current.compact-add-current:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 1px;
+}
+.link-list-toolbar .btn-add-current.compact-add-current .icon-plus {
+  font-size: 12px !important;
+  line-height: 1;
+  color: var(--qpl-primary);
+}
+.link-list-toolbar .btn-add-current.compact-add-current .compact-add-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-list-toolbar .btn-add-current.compact-add-current .action-shortcut {
+  min-height: 15px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 7px;
+  line-height: 1;
+  background: var(--qpl-surface-soft);
+  color: var(--qpl-muted);
+  border-color: var(--qpl-border-strong);
+  box-shadow: none;
+}
+.input-toolbar.add-current-detached {
+  grid-template-columns: 30px 30px !important;
+  justify-content: flex-end;
+  gap: 4px !important;
+}
+.input-toolbar.add-current-detached .toggle-manual,
+.input-toolbar.add-current-detached .quick-settings-toggle {
+  width: 30px !important;
+  min-width: 30px !important;
+  min-height: 28px !important;
+  height: 28px;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+.qpl-compact-toolbar .search-project-filter,
+.qpl-compact-toolbar .link-sort-toggle,
+.qpl-compact-toolbar .link-navigation-hint {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 360px) {
+  header { padding-inline: 7px !important; }
+  .search-shortcut-hint { display: none !important; }
+  .search-input { padding-right: 32px !important; }
+  .btn-clear-search { right: 6px !important; }
+  .app-mode-tabs { padding-inline: 6px !important; }
+  .app-mode-tabs .app-mode-btn,
+  #log-relay-mode { padding-inline: 2px !important; font-size: 9.5px !important; }
+  .app-mode-tabs .app-mode-title { font-size: 9.5px !important; }
+  .link-list-toolbar.qpl-compact-toolbar { gap: 3px; }
+  .link-list-toolbar .btn-add-current.compact-add-current { padding-inline: 5px !important; }
+  .link-list-toolbar .btn-add-current.compact-add-current .action-shortcut { display: none; }
+}
+
+@media (max-width: 320px) {
+  .link-list-toolbar .btn-add-current.compact-add-current .compact-add-label { max-width: 44px; }
+  .qpl-compact-toolbar .link-navigation-arrows { display: none; }
+}
