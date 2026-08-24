@@ -1,74 +1,200 @@
-# Quick Project Links — Giant-file Responsibility Map
+# Quick Project Links — Responsibility Map
 
-Baseline: **v1.15.6**  
-Updated: **2026-08-22**  
-Status: **PHASE 5 complete**
+Baseline: **v1.15.8**  
+Updated: **2026-08-25**
 
-This map documents the mature responsibilities inside `sidepanel.js` and `content-floating-search.js`. It is a change-safety guide, not a request to split every section into a module.
+This map defines current ownership boundaries. It is a change-safety guide, not a request to split every large file.
+
+## Shared interaction layer
+
+### `interaction-core.js`
+
+Owns DOM-free interaction meaning:
+
+- `SELECT_PRIMARY`
+- previous / next primary movement
+- keyboard event -> action mapping
+- mode -> primary role mapping
+
+It must not know Side Panel selectors, Floating Shadow DOM selectors or Chrome APIs.
+
+### `interaction-bridge.js`
+
+Owns DOM/surface adaptation for shared interaction actions:
+
+- Side Panel vs Floating POP detection;
+- Links / Prompt / REDS / LOG mode detection;
+- primary target selectors;
+- `Alt+Q` focus routing;
+- `ArrowUp` / `ArrowDown` primary-list movement;
+- cross-surface focus-visible treatment.
+
+For the interaction actions it recognizes, this bridge is the effective runtime owner. Do not add new mode-relative Alt+Q behavior to `sidepanel.js` or `content-floating-search.js`.
+
+The mature giant files still contain legacy Alt+Q fallback branches. Removing those branches is a future characterized cleanup, not a reason to add new logic there.
 
 ## `sidepanel.js`
 
-| Responsibility | Main anchors | State / dependencies | Current decision |
-| --- | --- | --- | --- |
-| Runtime and conflict-aware state | `sendRuntimeMessage`, `commitLocalState`, `applyCommittedState`, `bindUnifiedStorageListener` | `chrome.runtime`, storage snapshots, `quickLinksCommitState` | Keep together; mutation timing is cross-feature infrastructure. |
-| Dynamic link fallback | `isDynamicQuickLinkUrl`, `resolveQuickLinkLocallySidepanel` | URL, JST calendar helpers | Keep local; deliberately not consolidated with background/content fallbacks. |
-| Auto-project rules | `openAutoRuleManager`, `renderAutoRuleManager`, `persistAutoProjectRules` | `QuickLinksAutoRules`, projects, modal DOM | Keep in mature side panel until UI/state seams are characterized. |
-| Shared search | `setSharedSearchQuery`, `persistSharedSearchQuery`, `syncSharedSearchInputs` | Links / REDS / Prompt inputs, storage revision fields | Keep together; all three modes share one lifecycle. |
-| Projects and filters | `renderFilters`, project edit/picker functions, search-project-filter functions | items, projects, colors, modal DOM | Keep together; filtering and project mutation currently share state heavily. |
-| Link rendering and CRUD | `renderList`, `addItem`, edit/archive/restore/delete functions | items, projects, runtime counters | Keep in mature side panel. |
-| Backup import and exact-duplicate compaction | `handleImportData`, `cleanupDuplicateData` | `QuickLinksImportCore`, `QuickLinksAutoRules`, commit/render functions | Pure parsing/key/merge rules extracted in PHASE 5; orchestration stays here. |
-| Keyboard and event binding | `setupEventListeners`, focus/navigation helpers | all view modes and modal state | Keep together; broad but user-visible and capture-phase-sensitive. |
-| Help and panel presence | help modal functions, heartbeat functions | DOM, window ID, runtime messages | Keep in place; heartbeat is lifecycle-sensitive. |
-| REDS search | `setupRedsSearchFeature`, URL builders, run functions | shared query, date state, X core | X deterministic rules already extracted; mature entry point stays here. |
-| Prompt | `setupPromptMemoFeature`, category management, rendering and CRUD | prompt state, shared search, clipboard/runtime counters | Candidate for a future targeted phase only after dedicated characterization tests. |
+Keep these responsibilities in the mature Side Panel until a named extraction phase exists:
+
+- conflict-aware state synchronization and commit orchestration;
+- shared search lifecycle;
+- projects, filters and project management;
+- Link rendering / CRUD;
+- Prompt rendering / CRUD and categories;
+- REDS search orchestration;
+- import UI orchestration;
+- help and panel heartbeat lifecycle;
+- mature event bindings not yet transferred to a shared interaction contract.
+
+Do not move storage mutation semantics during visual cleanup.
 
 ## `content-floating-search.js`
 
-| Responsibility | Main anchors | State / dependencies | Current decision |
-| --- | --- | --- | --- |
-| Runtime/storage resilience | `getChromeRuntime`, extension-context guards, `storageGet`, `storageSet`, `bindStorageSync` | page content-script lifecycle and invalidated extension contexts | Keep together; fallback behavior is browser-context-specific. |
-| Shared search | `applySharedSearchQuery`, composition handlers, persistence | three floating tabs and side-panel routing | Keep together to preserve revision ordering. |
-| Host and notices | `createHost`, `showFloatingNotice` | Shadow DOM and page document | Keep in content script. |
-| Shortcut routing | keyboard handlers, route-to-sidepanel fallbacks, focus/navigation helpers | page focus, side-panel presence, capture guards | Keep together; do not centralize merely for DRYness. |
-| Main renderer | `render`, `updatePanelResults`, list-event binding | nearly all floating UI state | Do not extract yet; this is the highest-coupling area. |
-| Prompt | prompt category/filter/card/modal functions | prompt state, Shadow DOM, storage/runtime | Future candidate only with browser-focused characterization. |
-| Add/edit Links | add/edit modal functions, duplicate hints, auto-project application | page URL/title, items, projects, `QuickLinksAutoRules` | Keep together; draft preservation and overwrite confirmation are coupled. |
-| Search and project filter | item comparison/matching and filter-menu functions | items, projects, keyboard navigation | Pure scoring may be a future candidate after result-order tests exist. |
-| URL open/copy and REDS | open/copy helpers and REDS builders/runners | runtime fallback, tab opening, date state | Keep local; page-context fallback differs from side panel. |
-| Runtime messages | final `runtimeForMessages` listener | shortcut routing and active UI state | Keep at the content-script boundary. |
+Keep these browser-context responsibilities together unless specifically characterized:
 
-## PHASE 5 extraction boundary
+- extension-context invalidation resilience;
+- Floating POP host / Shadow DOM lifecycle;
+- shared search synchronization;
+- Floating renderer and draft preservation;
+- add/edit flows;
+- URL open/copy fallback behavior;
+- page-side REDS behavior;
+- mature shortcuts not yet transferred to the shared interaction layer.
 
-`quick-links-import-core.js` now owns only deterministic rules:
+Do not extract broad renderer sections merely for file-size reduction.
 
-- accepted current/legacy import shapes;
-- Quick Link and Prompt exact-duplicate keys;
-- duplicate record merge policy;
-- duplicate list compaction;
+## `background.js`
+
+Owns main Quick Links effectful backend behavior:
+
+- serialized `quickLinksCommitState`;
+- conflict-aware merge behavior;
+- click/copy counters;
+- dynamic URL resolution;
+- tab opening;
+- main command routing;
+- Side Panel presence coordination.
+
+Views should not bypass this mutation boundary with naive storage replacement.
+
+## Deterministic cores
+
+### `auto-project-rules.js`
+
+- URL normalization and validation;
+- duplicate comparison;
+- LINE WORKS normalization;
+- automatic project matching;
+- Quick Link / Prompt record normalization.
+
+### `quick-links-import-core.js`
+
+- accepted import shapes;
+- exact-duplicate keys;
+- duplicate merge / compaction rules;
 - project-list reconstruction.
 
-`sidepanel.js` still owns all effects:
+### `reds-x-search-core.js`
 
-- reading textarea/modal state;
-- confirmation and alert messages;
-- ID/timestamp creation during import;
-- state replacement or conflict-aware commit;
-- rendering after commit.
+- X account normalization;
+- date boundary conversion;
+- query construction;
+- final X URL construction.
 
-Load order in `sidepanel.html` is intentional:
+### `log-relay-core.js`
 
-1. `auto-project-rules.js`
-2. `quick-links-import-core.js`
-3. `sidepanel.js`
+- Log Relay pure state/date/key helpers.
 
-## Explicit non-targets
+## Visual system
 
-- no `sidepanel-wrapper.js` architecture changes;
-- no Backlog/JST fallback consolidation;
-- no Log Relay changes;
-- no shortcut-handler consolidation;
-- no storage key, schema or migration changes;
-- no manifest version bump;
-- no feature or UI change.
+### `qpl-design-tokens.css`
 
-Future extraction requires a named responsibility, characterization coverage and a smaller change surface than the whole giant file.
+Owns shared visual vocabulary:
+
+- spacing scale;
+- radius scale;
+- typography scale;
+- focus tokens;
+- restrained shadow tokens;
+- top-level mode-tab normalization.
+
+Do not treat it as a dumping ground for one-off component CSS. Add a token only when it expresses reusable visual meaning.
+
+## Log Relay
+
+- `log-relay-background.js` — Log Relay mutation owner.
+- `log-relay-capture.js` — page capture UI.
+- `log-relay-panel.js` — LOG panel rendering / status / edit / bulk behavior.
+- `log-relay-polish.js` — visual polish layer.
+- `log-relay-toggle-background.js` — Chrome Side Panel toggle lifecycle.
+- `log-relay-toggle-panel.js` — in-panel presence / close handling.
+- `log-relay-content-command-guard.js` — duplicate-command guard.
+
+Chrome user-gesture-sensitive Side Panel operations may require multiple execution contexts. Shared semantic naming does not override Chrome timing constraints.
+
+## Runtime composition points
+
+### `manifest.json`
+
+Owns content-script runtime order. For the shared interaction slice:
+
+```text
+interaction-core.js
+interaction-bridge.js
+content-floating-search.js
+```
+
+The order is contract-tested.
+
+### `sidepanel-wrapper.js`
+
+Loads the mature Side Panel first, then focused shared modules. It must load:
+
+```text
+interaction-core.js
+interaction-bridge.js
+```
+
+in that order.
+
+Do not change the wrapper architecture casually.
+
+## CI / release ownership
+
+`.github/workflows/package-extension.yml` owns release integrity:
+
+- repository syntax and tests;
+- manifest references;
+- runtime-only ZIP packaging;
+- ZIP-root validation;
+- extracted-package manifest validation;
+- interaction runtime order validation;
+- exclusion of retired shims and development Markdown;
+- artifact upload and validated `release/` publication.
+
+A source file existing in the repository is not sufficient proof that it exists in the installable runtime.
+
+## Current safe extraction strategy
+
+Use vertical responsibility slices:
+
+1. define interaction or deterministic contract;
+2. add characterization tests;
+3. add a small pure core if useful;
+4. add a thin context adapter if needed;
+5. wire both runtime entry paths;
+6. verify packaged artifact;
+7. only then delete the retired shim / duplicated module.
+
+`SELECT_PRIMARY` in v1.15.8 is the reference implementation of this strategy.
+
+## Explicit high-risk non-targets
+
+Do not casually:
+
+- rewrite `sidepanel-wrapper.js` composition;
+- rewrite the entire `sidepanel.js` / `content-floating-search.js` pair;
+- rename storage keys or migration markers;
+- consolidate Chrome Side Panel open/toggle timing solely for DRYness;
+- centralize dynamic Backlog/JST fallback behavior without context-specific characterization.
