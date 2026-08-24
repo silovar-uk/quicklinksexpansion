@@ -3,10 +3,12 @@ name: Package extension ZIP
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'release/*.zip'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package:
@@ -22,7 +24,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
           while IFS= read -r -d '' file; do
             node --check "$file"
-          done < <(find . -type f -name '*.js' -not -path './backup/*' -not -path './dist/*' -print0)
+          done < <(find . -type f -name '*.js' -not -path './backup/*' -not -path './dist/*' -not -path './release/*' -print0)
 
       - name: Validate manifest file references
         shell: bash
@@ -73,6 +75,7 @@ jobs:
             --exclude '.github/' \
             --exclude 'backup/' \
             --exclude 'dist/' \
+            --exclude 'release/' \
             --exclude 'tests/' \
             --exclude 'icons/Gemini_Generated_Image_*.png' \
             ./ "$package_dir/"
@@ -112,3 +115,22 @@ jobs:
           path: dist/quicklinksexpansion-v${{ steps.version.outputs.version }}.zip
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish validated ZIP to repository
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          zip_name="quicklinksexpansion-v${version}.zip"
+          mkdir -p release
+          cp "dist/${zip_name}" "release/${zip_name}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "release/${zip_name}"
+          if git diff --cached --quiet; then
+            echo 'Validated ZIP is already current.'
+          else
+            git commit -m "Publish validated extension ZIP [skip ci]"
+            git push
+          fi
