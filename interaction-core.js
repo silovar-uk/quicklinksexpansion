@@ -10,7 +10,8 @@
   const PRIMARY_ROLE_BY_MODE = Object.freeze({
     links: 'link',
     prompts: 'prompt',
-    reds: 'search'
+    reds: 'search',
+    log: 'log'
   });
 
   function normalizeMode(mode) {
