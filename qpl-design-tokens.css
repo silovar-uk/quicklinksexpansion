@@ -12,46 +12,30 @@
   --qpl-hold: #d97706;
   --qpl-done: #059669;
   --qpl-danger: #dc2626;
+
+  --qpl-mode-links: #2563eb;
+  --qpl-mode-reds: #b91c1c;
+  --qpl-mode-prompts: #d97706;
+  --qpl-mode-log: #0ea5e9;
+
   --qpl-radius-sm: 5px;
   --qpl-radius-md: 8px;
   --qpl-radius-lg: 10px;
+
   --qpl-space-1: 4px;
   --qpl-space-2: 8px;
   --qpl-space-3: 12px;
   --qpl-space-4: 16px;
+
+  --qpl-control-h-sm: 24px;
+  --qpl-control-h-md: 30px;
+  --qpl-control-h-lg: 36px;
+
   --qpl-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
   --qpl-shadow-md: 0 3px 10px rgba(15, 23, 42, .08);
-}
+  --qpl-focus-ring: 0 0 0 2px rgba(100, 116, 139, .20);
 
-/* Four modes are a first-class part of the app, not a Log-only override. */
-.app-mode-tabs {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: var(--qpl-space-1) !important;
-  align-items: stretch !important;
-}
-
-.app-mode-tabs .app-mode-btn,
-#log-relay-mode {
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 7px 3px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  font-size: 10px !important;
-  min-height: 34px !important;
-  border-radius: var(--qpl-radius-lg) !important;
-  box-shadow: var(--qpl-shadow-sm) !important;
-}
-
-.app-mode-tabs .app-mode-title {
-  font-size: 10px !important;
-  white-space: nowrap !important;
-}
-
-.app-mode-tabs .app-mode-shortcut {
-  display: none !important;
+  --qpl-action-quiet-bg: transparent;
+  --qpl-action-quiet-hover: #f8fafc;
+  --qpl-selection-bg: #f5f6f7;
 }
