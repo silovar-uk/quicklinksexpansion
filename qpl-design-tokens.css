@@ -12,15 +12,31 @@
   --qpl-hold: #d97706;
   --qpl-done: #059669;
   --qpl-danger: #dc2626;
-  --qpl-radius-sm: 5px;
-  --qpl-radius-md: 8px;
-  --qpl-radius-lg: 10px;
+
+  /* Small, intentional scales: hierarchy comes from spacing and type, not decoration. */
+  --qpl-radius-sm: 6px;
+  --qpl-radius-md: 10px;
+  --qpl-radius-lg: 14px;
   --qpl-space-1: 4px;
   --qpl-space-2: 8px;
   --qpl-space-3: 12px;
   --qpl-space-4: 16px;
-  --qpl-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --qpl-space-5: 24px;
+
+  --qpl-font-micro: 9px;
+  --qpl-font-meta: 10px;
+  --qpl-font-body: 12px;
+  --qpl-font-title: 14px;
+
+  /* Keyboard focus is a first-class visual state. */
+  --qpl-focus-color: #2563eb;
+  --qpl-focus-width: 2px;
+  --qpl-focus-offset: 2px;
+
+  /* List/card surfaces stay flat. Reserve shadows for true floating layers. */
+  --qpl-shadow-sm: none;
   --qpl-shadow-md: 0 3px 10px rgba(15, 23, 42, .08);
+  --qpl-shadow-floating: 0 18px 44px rgba(15, 23, 42, .18);
 }
 
 /* Four modes are a first-class part of the app, not a Log-only override. */
@@ -41,14 +57,21 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  font-size: 10px !important;
+  font-size: var(--qpl-font-meta) !important;
   min-height: 34px !important;
-  border-radius: var(--qpl-radius-lg) !important;
+  border-radius: var(--qpl-radius-md) !important;
   box-shadow: var(--qpl-shadow-sm) !important;
 }
 
+.app-mode-tabs .app-mode-btn:focus-visible,
+#log-relay-mode:focus-visible {
+  outline: var(--qpl-focus-width) solid var(--qpl-focus-color) !important;
+  outline-offset: var(--qpl-focus-offset) !important;
+  box-shadow: none !important;
+}
+
 .app-mode-tabs .app-mode-title {
-  font-size: 10px !important;
+  font-size: var(--qpl-font-meta) !important;
   white-space: nowrap !important;
 }
 
