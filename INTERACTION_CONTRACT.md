@@ -1,0 +1,119 @@
+# Quick Project Links — Interaction Contract
+
+Baseline: **v1.15.8**  
+Updated: **2026-08-25**
+
+This document defines interaction meaning independently from Side Panel / Floating POP DOM details.
+
+## Principle
+
+**Same intent, same meaning, regardless of surface.**
+
+A keyboard shortcut should express an action first. The active mode and active surface then resolve the DOM target.
+
+```text
+key input
+  -> interaction action
+  -> active mode
+  -> active surface adapter
+  -> DOM target
+```
+
+Do not add a new shortcut implementation that directly assumes `Links` when the intended action is mode-relative.
+
+## Current shared actions
+
+### `SELECT_PRIMARY`
+
+Binding: `Alt + Q`
+
+- Links -> focus the first visible Link primary target.
+- Prompt -> focus the first visible Prompt copy action.
+- REDS -> focus the current REDS search field.
+- Empty Links / Prompt list -> safe no-op while still consuming the shortcut; do not fall through and switch modes.
+- The action must not change the active mode.
+
+### Primary list navigation
+
+Bindings after a primary list target is focused:
+
+- `ArrowUp` -> previous primary target.
+- `ArrowDown` -> next primary target.
+- Stop at the first / last item; do not wrap.
+- Currently applies to Links and Prompt list targets.
+- REDS search remains a text/search control and does not opt into list navigation.
+
+Native `Enter` activation remains owned by the actual focused DOM control. The interaction layer should not synthesize a second activation path when native semantics are sufficient.
+
+## Surfaces
+
+### Side Panel
+
+Adapters currently resolve:
+
+- Links: `#link-list .link-item .item-title`
+- Prompt: `#prompt-list .prompt-card [data-prompt-copy]`
+- REDS: `#reds-search`
+
+### Floating POP
+
+Adapters currently resolve:
+
+- Links: `#ql-list [data-open-url]`
+- Prompt: `#ql-prompt-list .ql-prompt-card [data-prompt-copy]`
+- REDS: `#ql-reds-query`
+
+Surface selectors belong to `interaction-bridge.js`. Shortcut meaning belongs to `interaction-core.js`.
+
+## Runtime ownership
+
+- `interaction-core.js` is DOM-free and CommonJS-compatible for deterministic tests.
+- `interaction-bridge.js` detects Side Panel vs Floating POP, resolves the active mode, owns primary-target focus/navigation, and installs the capture-phase keyboard bridge.
+- `manifest.json` loads the interaction runtime before `content-floating-search.js`.
+- `sidepanel-wrapper.js` loads the interaction runtime after the mature side panel has initialized.
+
+The mature giant files still contain legacy Alt+Q branches. For v1.15.8 the shared bridge is the effective owner because its window-capture listener consumes recognized interactions before the document-capture legacy handlers. Remove legacy branches only in a separately characterized giant-file cleanup phase; do not reintroduce new behavior into them.
+
+## Visual focus contract
+
+Keyboard focus is a product state, not a late accessibility patch.
+
+Primary targets use the shared focus tokens:
+
+- `--qpl-focus-color`
+- `--qpl-focus-width`
+- `--qpl-focus-offset`
+
+The bridge marks primary targets with `data-qpl-primary-target="true"` and ensures a consistent focus-visible outline in both document and Shadow DOM surfaces.
+
+Visual selection, actual focus, and native Enter target should point to the same control wherever possible.
+
+## Rejection criteria
+
+Reject a change if it:
+
+- makes `Alt+Q` switch to Links from Prompt or REDS;
+- fixes only Side Panel or only Floating POP;
+- adds a Prompt-only / Links-only shortcut shim for a mode-relative action;
+- handles visual selection separately from actual keyboard focus without a clear reason;
+- lets an empty Prompt list fall through to legacy Links selection;
+- consumes ArrowUp/ArrowDown while focus is in ordinary search/text input;
+- adds runtime JS without loading it through both required entry paths;
+- passes unit tests but is absent from the packaged runtime.
+
+## Tests
+
+`tests/interaction-core.test.js` covers intent, mode routing, both surfaces, empty-state safety and list navigation.
+
+`tests/interaction-runtime-contract.test.js` verifies manifest/wrapper load order, retirement of the Prompt-only shim and presence of shared focus tokens.
+
+## Next extraction candidates
+
+Do not centralize everything at once. The next candidates should be taken one action at a time, with characterization first:
+
+1. `FOCUS_SEARCH` (`Alt+4`)
+2. `CREATE_NEW` (`Alt+N`)
+3. mode switching (`Alt+1/2/3`)
+4. search/filter intent routing
+
+Keep Chrome user-gesture-sensitive actions, especially Side Panel open/toggle behavior, in their required execution contexts even when their semantic action name is shared.
