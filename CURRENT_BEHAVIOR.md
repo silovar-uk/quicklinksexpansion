@@ -1,104 +1,108 @@
 # Quick Project Links — Current Behavior Contract
 
-Baseline: **v1.15.6**  
-Purpose: preserve current user-visible behavior while the codebase is reorganized.
+Baseline: **v1.15.8**  
+Updated: **2026-08-25**  
+Purpose: preserve user-visible behavior while the codebase is reorganized.
 
-This document is a characterization contract, not a redesign proposal. If a refactor changes one of the behaviors below without an explicit product decision, treat that as a regression.
+This is a characterization contract. If a refactor changes one of these behaviors without an explicit product decision, treat it as a regression.
 
 ## Entry points
 
-- Chrome action opens Quick Links through the side panel entry point defined by `manifest.json`.
-- The page-side floating UI is supplied by `content-floating-search.js`.
-- The side panel uses `sidepanel-wrapper.html` / `sidepanel-wrapper.js`, which load the mature `sidepanel.html` / `sidepanel.js` UI and then attach focused feature modules.
-- The service worker uses `background-wrapper.js` as its composition point.
+- Chrome action opens Quick Links through the Side Panel entry point in `manifest.json`.
+- The page-side Floating POP is supplied by `content-floating-search.js`.
+- The Side Panel uses `sidepanel-wrapper.html` / `sidepanel-wrapper.js`, which load the mature `sidepanel.html` / `sidepanel.js` UI and then focused feature modules.
+- The service worker uses `background-wrapper.js`.
 
 ## Main modes
-
-The product has four visible modes:
 
 1. Links
 2. REDS
 3. Prompt
 4. LOG / Log Relay
 
-Links / REDS / Prompt behavior must remain available when Log Relay is added or reorganized.
-
-## Canonical shortcuts
+## Canonical shortcuts and interaction behavior
 
 - `Alt + 1`: open Links.
 - `Alt + 2`: open REDS.
 - `Alt + 3`: open Prompt.
+- `Alt + 4`: clear shared search and focus the current mode search field through the existing mature routing.
+- `Alt + Q`: select the primary target of the **current mode without switching modes**.
+  - Links -> first visible Link.
+  - Prompt -> first visible Prompt copy action.
+  - REDS -> REDS search field.
+  - LOG -> first visible Log Relay row checkbox.
+- After a Links / Prompt / LOG primary list target is focused, `ArrowUp` / `ArrowDown` move to the previous / next primary target and stop at the list edge.
+- Empty lists are safe no-ops for `Alt+Q`; they must not fall through and switch to Links.
+- `Alt+Shift+Q`, Ctrl/Meta variants and IME composition must not be treated as plain `Alt+Q`.
 - `Alt + M`: capture one Log Relay memo on a normal web page.
-- `Alt + Shift + M`: toggle the Log Relay side panel. Closed -> open in LOG; open -> close.
+- `Alt + Shift + M`: toggle the Log Relay Side Panel.
 - In LOG mode, `Alt + Shift + 1..5` select All / Inbox / Hold / Done / Trash.
-- Existing search/focus/filter shortcuts implemented by the mature Quick Links code remain part of the behavior contract.
 
-Shortcut handling can exist in more than one execution context when required by Chrome's side-panel user-gesture rules. Do not consolidate handlers merely to reduce duplication.
+Side Panel and Floating POP must interpret the same mode-relative interaction with the same meaning where both surfaces exist. See `INTERACTION_CONTRACT.md`.
+
+Chrome user-gesture-sensitive actions may still require handlers in more than one execution context. Do not consolidate those solely for DRYness.
 
 ## Shared search
 
-- Links / REDS / Prompt participate in the existing shared-search state.
-- Shared search state uses `sharedSearchQuery` and `sharedSearchState`.
-- The search lifecycle currently includes automatic clearing after three minutes from the latest edit.
-- Search synchronization must not allow an older writer state to overwrite a newer one.
+- Links / REDS / Prompt participate in shared-search state.
+- State uses `sharedSearchQuery` and `sharedSearchState` revision metadata.
+- Search automatically clears after three minutes from the latest edit.
+- An older writer state must not overwrite a newer one.
 
 ## REDS / X search
 
-Current X-search behavior:
-
 - Default X account: `REDSOFFICIAL`.
-- The account field is editable.
-- `@handle` input is normalized to `handle`.
-- `https://x.com/handle` and `https://twitter.com/handle` inputs are normalized to the handle.
-- Keyword + account -> X live search using `keyword from:account`.
+- Account is editable.
+- `@handle`, `x.com/handle` and `twitter.com/handle` forms normalize to the handle.
+- Keyword + account -> live X query using `keyword from:account`.
 - Keyword only -> keyword search.
-- Account only -> search the account name itself, not `from:account` only.
-- Both keyword and account blank -> do not create a search URL.
-- Start date is inclusive using `since:YYYY-MM-DD`.
-- End date is represented by X's exclusive `until:` using the following calendar day.
-- Search button, Enter handling, Alt+X/runtime paths must continue to reach the same effective search behavior.
+- Account only -> search the account name itself.
+- Both blank -> no search URL.
+- Start date is inclusive with `since:`.
+- End date uses the following calendar day for exclusive `until:`.
+- Button / Enter / Alt+X / runtime paths must reach the same effective behavior.
 
 ## Links and URL normalization
 
-- `http:` and `https:` URLs are valid normal links.
-- Unsupported/unsafe schemes such as `javascript:` are rejected.
-- Built-in `quicklinks://` dynamic URLs are valid stored links.
-- Duplicate comparison uses the existing canonical URL rules rather than raw string equality.
+- `http:` / `https:` links are valid.
+- unsafe/unsupported schemes such as `javascript:` are rejected.
+- built-in `quicklinks://` dynamic URLs are valid stored links.
+- duplicate comparison uses canonical URL rules rather than raw string equality.
 
 ### LINE WORKS
 
-- A bare supported LINE WORKS channel ID is converted to the canonical `line.worksmobile.com/message/send` form.
-- Different LINE WORKS URL shapes referring to the same `channelId` are treated as the same destination.
-- UUID channel IDs are normalized case-insensitively.
+- supported bare channel IDs normalize to canonical LINE WORKS message URLs.
+- different URL shapes with the same channel ID are treated as the same destination.
+- UUID channel IDs normalize case-insensitively.
 
 ### Backlog dynamic links
 
-- `quicklinks://backlog/updated?range=last-N-calendar-days` resolves only when clicked/opened.
-- Supported range: 1 through 366 calendar days.
-- Date boundaries are calculated in Asia/Tokyo calendar time.
+- `quicklinks://backlog/updated?range=last-N-calendar-days` resolves when opened.
+- supported N: 1 through 366.
+- date boundaries use Asia/Tokyo calendar time.
 - N=1 means today; N=2 means yesterday through today.
-- Resolved Backlog search keeps the existing status and sort query parameters.
+- existing status / sort query parameters are preserved.
 
 ## State mutation and conflict behavior
 
-The mature Quick Links state commit path preserves concurrent edits rather than replacing the entire store blindly.
+Main Quick Links mutation preserves concurrent edits rather than replacing the whole store blindly.
 
-- Local deletion wins over a stale copy of the same record.
-- Remote-only records survive a local edit to another record.
-- Counter fields such as click/copy counts merge by local delta.
-- String-array state preserves unrelated remote additions while respecting explicit local removals.
-- Object state applies local edits/deletions while preserving unrelated remote keys.
+- local deletion wins over a stale copy of the same record;
+- remote-only records survive unrelated local edits;
+- click/copy counters merge by local delta;
+- string-array state preserves unrelated remote additions while respecting local removals;
+- object state applies local edits/deletions while preserving unrelated remote keys.
 
-Do not replace this behavior with naive `chrome.storage.local.set()` calls from individual views.
+Do not replace this with naive view-local `chrome.storage.local.set()` state replacement.
 
-## Backup import and exact-duplicate cleanup
+## Backup import and duplicate cleanup
 
-- Import accepts the current combined backup shape and existing legacy Quick Links / Prompt shapes.
-- Complete restore remains distinct from merge import and requires its existing confirmation path.
-- Quick Link exact-duplicate identity includes canonical URL, normalized title, project, note and archive state. Active and archived records remain distinct.
-- Prompt exact-duplicate identity includes normalized title, normalized line endings/body and category.
-- Duplicate compaction keeps the existing display record while preserving the earliest creation/addition date, latest use date, maximum usage count, combined click history and strongest favorite state where applicable.
-- Project reconstruction keeps `未分類` and removes duplicate project names.
+- Import accepts current combined backup and supported legacy Quick Links / Prompt shapes.
+- Complete restore remains distinct from merge import and keeps confirmation.
+- Quick Link exact-duplicate identity uses canonical URL + normalized title/project/note/archive state.
+- Prompt exact-duplicate identity uses normalized title/body/category.
+- Compaction preserves existing usage/history semantics.
+- Project reconstruction keeps `未分類` and removes duplicate names.
 
 ## Log Relay
 
@@ -117,50 +121,55 @@ Views:
 - done
 - trash
 
-Behavior contract:
+Behavior:
 
-- Capture stores the user's memo and Log Relay internal state; it does not automatically capture page URL/title/selection/tab metadata.
-- Entry mutations are owned by the background Log Relay store path.
-- Individual delete moves an entry to Trash without requiring row selection first.
+- Capture stores the user's memo and internal state, not automatic page metadata.
+- Entry mutation is owned by the background Log Relay store path.
+- Individual delete moves to Trash without prior row selection.
 - Trash is reversible for 24 hours.
 - Hard delete remains distinct from soft delete.
 - Sorting and bulk operations remain available.
-- Log Relay keeps its light-blue translucent visual language in both capture and panel UI.
-- When Log Relay is active, the Quick Links header text remains readable against the light-blue background.
-
-Storage keys:
-
-- `logRelayEntry:<id>` — entry source of truth.
-- `logRelayIndex` — rebuildable index.
-- `logRelaySortDirection` — UI sort preference.
-- `logRelayOpenPanelRequest` — transient panel-open coordination, session storage preferred where available.
+- LOG keeps its light-blue translucent visual language.
+- When LOG is active, underlying mature mode classes may remain in the DOM; interaction detection must prefer `log-relay-active` so keyboard actions do not jump to hidden Links UI.
 
 ## Side-panel lifecycle
 
-- `chrome.sidePanel.open()` must be started inside the original eligible user-action turn where Chrome requires it.
-- `Alt + Shift + M` uses the current toggle architecture and must not double-fire through old content-script paths.
-- Panel presence is coordinated between side-panel and service-worker contexts.
-- Do not remove guards/listeners solely because another layer appears to handle the same key; first prove the execution-context responsibility is redundant.
+- `chrome.sidePanel.open()` must begin in the original eligible user-action turn where Chrome requires it.
+- `Alt + Shift + M` must not double-fire through retired content-script paths.
+- panel presence remains coordinated between Side Panel and service-worker contexts.
 
-## Test baseline
+## Visual behavior
 
-The repository's deterministic test suite should cover at least:
+The UI should use a restrained hierarchy:
 
-- Log Relay state transitions and 24h trash boundary.
-- Log Relay shortcut matching.
-- X account default and normalization.
-- X keyword/account/date query generation.
-- LINE WORKS canonicalization.
-- Dynamic Backlog URL resolution and JST date boundaries.
-- Storage merge conflict behavior.
+- spacing scale: 4 / 8 / 12 / 16 / 24;
+- radius scale: 6 / 10 / 14;
+- ordinary cards/controls primarily use border + spacing + typography;
+- strong shadows are reserved for floating layers / modals;
+- keyboard focus is visible and uses shared focus tokens.
 
-GitHub Actions should continue to run manifest parsing, JavaScript syntax checks, deterministic tests, then packaging.
+Visual focus, actual DOM focus and native activation target should agree wherever possible.
+
+## Runtime / release behavior
+
+A source-level fix is incomplete if the installable ZIP does not contain or load it.
+
+CI must continue to:
+
+1. parse manifest;
+2. syntax-check JavaScript;
+3. validate source manifest references;
+4. run deterministic tests;
+5. build a runtime-only ZIP;
+6. verify `manifest.json` at ZIP root;
+7. extract the ZIP and validate packaged manifest references;
+8. verify `interaction-core.js` -> `interaction-bridge.js` -> `content-floating-search.js` order;
+9. reject retired Prompt-only shim and development Markdown leakage.
 
 ## Refactor rule
 
-For cleanup work:
-
 1. preserve this contract;
-2. add or update characterization tests before moving risky behavior;
-3. prefer small commits by responsibility;
-4. if behavior changes unexpectedly, revert the cleanup rather than accepting the change as a new specification.
+2. add characterization before moving risky behavior;
+3. prefer one responsibility / interaction intent at a time;
+4. verify packaged runtime, not only source;
+5. if behavior drifts unexpectedly, treat it as a regression rather than a convenient new specification.
