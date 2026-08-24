@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.8",
-  "description": "サイドパネルのページ追加・並び替え・リンク選択を1行のコンパクト操作バーに整理",
+  "version": "1.15.9",
+  "description": "Quiet Headerと4モードのフラットナビをSide Panel Shellへ統合",
   "permissions": [
     "sidePanel",
     "storage",
