@@ -24,6 +24,28 @@ jobs:
             node --check "$file"
           done < <(find . -type f -name '*.js' -not -path './backup/*' -not -path './dist/*' -print0)
 
+      - name: Validate manifest file references
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          const refs = [
+            manifest.background?.service_worker,
+            manifest.side_panel?.default_path,
+            ...Object.values(manifest.icons || {}),
+            ...Object.values(manifest.action?.default_icon || {}),
+            ...(manifest.content_scripts || []).flatMap(entry => entry.js || [])
+          ].filter(Boolean);
+          const missing = [...new Set(refs)].filter(file => !fs.existsSync(file));
+          if (missing.length) {
+            console.error('Missing manifest references:\n' + missing.join('\n'));
+            process.exit(1);
+          }
+          console.log(`Validated ${new Set(refs).size} manifest file references.`);
+          NODE
+
       - name: Run deterministic behavior tests
         shell: bash
         run: |
@@ -42,7 +64,8 @@ jobs:
         run: |
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
-          package_dir="dist/quicklinksexpansion"
+          package_dir="dist/package-root"
+          zip_path="dist/quicklinksexpansion-v${version}.zip"
           mkdir -p "$package_dir"
 
           rsync -a \
@@ -54,8 +77,33 @@ jobs:
             --exclude 'icons/Gemini_Generated_Image_*.png' \
             ./ "$package_dir/"
 
-          cd dist
-          zip -qr "quicklinksexpansion-v${version}.zip" quicklinksexpansion
+          (
+            cd "$package_dir"
+            zip -qr "../quicklinksexpansion-v${version}.zip" .
+          )
+
+          test -f "$zip_path"
+
+      - name: Verify ZIP root structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          zip_path="dist/quicklinksexpansion-v${version}.zip"
+          entries="$(unzip -Z1 "$zip_path")"
+
+          if ! grep -Fxq 'manifest.json' <<< "$entries"; then
+            echo 'manifest.json is not at ZIP root.' >&2
+            exit 1
+          fi
+
+          if grep -Eq '^quicklinksexpansion/' <<< "$entries"; then
+            echo 'Unexpected quicklinksexpansion/ parent directory exists in ZIP.' >&2
+            exit 1
+          fi
+
+          echo 'ZIP root structure is valid.'
+          printf '%s\n' "$entries" | head -40
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
