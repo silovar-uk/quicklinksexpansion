@@ -26,9 +26,10 @@ function makeElement(owner, options = {}) {
 }
 
 function makeSidepanel(mode, counts = {}) {
+  const bodyClasses = mode === 'log' ? ['mode-links', 'log-relay-active'] : [`mode-${mode}`];
   const doc = {
     activeElement: null,
-    body: { classList: classList([`mode-${mode}`]) },
+    body: { classList: classList(bodyClasses) },
     head: null,
     _styles: new Map(),
     _nodes: new Map(),
@@ -59,10 +60,12 @@ function makeSidepanel(mode, counts = {}) {
   const links = Array.from({ length: counts.links || 0 }, () => makeElement(doc));
   const prompts = Array.from({ length: counts.prompts || 0 }, () => makeElement(doc));
   const reds = Array.from({ length: counts.reds ?? 1 }, () => makeElement(doc));
+  const logs = Array.from({ length: counts.logs || 0 }, () => makeElement(doc));
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.links, links);
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.prompts, prompts);
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.reds, reds);
-  return { doc, links, prompts, reds };
+  doc._selectorMap.set(Bridge.SELECTORS.sidepanel.log, logs);
+  return { doc, links, prompts, reds, logs };
 }
 
 function makeFloating(mode, counts = {}) {
@@ -134,6 +137,7 @@ test('primary role is mode-driven instead of Links-hardcoded', () => {
   assert.equal(Core.getPrimaryRole('links'), 'link');
   assert.equal(Core.getPrimaryRole('prompts'), 'prompt');
   assert.equal(Core.getPrimaryRole('reds'), 'search');
+  assert.equal(Core.getPrimaryRole('log'), 'log');
   assert.equal(Core.getPrimaryRole('unknown'), '');
 });
 
@@ -187,4 +191,16 @@ test('REDS Alt+Q focuses the current mode search instead of switching to Links',
   assert.equal(Bridge.handleKeyboardEvent(event, doc), true);
   assert.equal(doc.activeElement, reds[0]);
   assert.equal(Bridge.sidepanelMode(doc), 'reds');
+});
+
+test('LOG Alt+Q prefers Log Relay over stale Links mode and ArrowDown moves rows', () => {
+  const { doc, logs } = makeSidepanel('log', { links: 2, logs: 3 });
+  const event = keyEvent();
+  assert.equal(Bridge.handleKeyboardEvent(event, doc), true);
+  assert.equal(Bridge.sidepanelMode(doc), 'log');
+  assert.equal(doc.activeElement, logs[0]);
+
+  const down = keyEvent({ altKey: false, code: 'ArrowDown', key: 'ArrowDown', keyCode: 40 });
+  assert.equal(Bridge.handleKeyboardEvent(down, doc), true);
+  assert.equal(doc.activeElement, logs[1]);
 });
