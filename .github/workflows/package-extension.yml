@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'release/*.zip'
+      - 'release/*.zip.b64'
   workflow_dispatch:
 
 permissions:
@@ -125,9 +126,10 @@ jobs:
           zip_name="quicklinksexpansion-v${version}.zip"
           mkdir -p release
           cp "dist/${zip_name}" "release/${zip_name}"
+          base64 "dist/${zip_name}" > "release/${zip_name}.b64"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f "release/${zip_name}"
+          git add -f "release/${zip_name}" "release/${zip_name}.b64"
           if git diff --cached --quiet; then
             echo 'Validated ZIP is already current.'
           else
