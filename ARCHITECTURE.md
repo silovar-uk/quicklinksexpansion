@@ -1,9 +1,9 @@
 # Quick Project Links — Architecture
 
-Baseline: **v1.15.6**  
-Updated: **2026-08-22**
+Baseline: **v1.15.8**  
+Updated: **2026-08-25**
 
-This document describes the current architecture. It is not a redesign proposal. For user-visible behavior that must survive cleanup work, see `CURRENT_BEHAVIOR.md`.
+This document describes the current runtime architecture and the boundaries that should survive future cleanup. User-visible interaction semantics are defined in `INTERACTION_CONTRACT.md`; broader behavior remains in `CURRENT_BEHAVIOR.md`.
 
 ## 1. Runtime entry points
 
@@ -23,6 +23,8 @@ manifest.json
 │  ├─ log-relay-content-command-guard.js
 │  ├─ shortcut-registry.js
 │  ├─ auto-project-rules.js
+│  ├─ interaction-core.js
+│  ├─ interaction-bridge.js
 │  ├─ content-floating-search.js
 │  └─ log-relay-capture.js
 │
@@ -35,210 +37,196 @@ manifest.json
          ├─ reds-x-search-core.js
          ├─ reds-x-search-polish.js
          ├─ shortcut-registry.js
+         ├─ interaction-core.js
+         ├─ interaction-bridge.js
          ├─ log-relay-core.js
          ├─ log-relay-panel.js
          ├─ log-relay-polish.js
          └─ log-relay-toggle-panel.js
 ```
 
-`sidepanel.html` / `sidepanel.js` remain the mature core UI. `sidepanel-wrapper.js` waits for the base document initialization and then attaches focused feature modules. Do not change this load model casually: feature modules currently depend on the mature DOM and some existing global functions.
+`sidepanel.html` / `sidepanel.js` remain the mature core UI. `sidepanel-wrapper.js` waits for the base document initialization and then attaches focused feature modules. Do not replace that composition model casually.
 
-## 2. Major module responsibilities
+## 2. Interaction architecture
 
-### Core Quick Links
+v1.15.8 introduces a shared, intentionally small interaction layer.
 
-- `sidepanel.js` — side-panel Links / REDS / Prompt state, rendering, editing, search, filters, shortcuts and storage synchronization.
-- `content-floating-search.js` — page-side floating Links / REDS / Prompt UI and page-context shortcut routing.
-- `background.js` — serialized state commits, conflict-aware merge behavior, atomic click/copy counters, dynamic URL resolution, main Quick Links command routing and side-panel presence coordination.
-- `auto-project-rules.js` — deterministic link normalization, duplicate comparison, LINE WORKS normalization, automatic project matching and link/prompt normalization.
-- `quick-links-import-core.js` — DOM-free import-shape parsing, exact-duplicate keys, duplicate record merge/compaction and project-list reconstruction. It depends on `QuickLinksAutoRules` and loads before `sidepanel.js`.
-- `RESPONSIBILITY_MAP.md` — current ownership map and extraction guardrails for the two mature giant files.
+### `interaction-core.js`
 
-### Shared / infrastructure
+DOM-free interaction meaning:
 
-- `background-wrapper.js` — service-worker composition point.
-- `sidepanel-wrapper.js` — side-panel composition point.
-- `shortcut-registry.js` — canonical shared Log Relay shortcut matching plus legacy Quick Links shortcut documentation.
-- `search-auto-clear-background.js` — three-minute shared-search expiry lifecycle.
-- `qpl-design-tokens.css` — shared visual tokens and top-level mode layout.
+- `SELECT_PRIMARY`
+- `MOVE_PRIMARY_PREV`
+- `MOVE_PRIMARY_NEXT`
+- mode -> primary-role resolution
+- keyboard-event -> action resolution
+
+It is CommonJS-compatible so deterministic tests exercise the exact production rules.
+
+### `interaction-bridge.js`
+
+Runtime adapter between shared intent and DOM surfaces:
+
+- detects Side Panel vs Floating POP;
+- resolves Links / Prompt / REDS / LOG mode;
+- maps each surface/mode to its primary DOM control;
+- owns `Alt+Q` primary focus;
+- owns `ArrowUp` / `ArrowDown` movement after a list primary target is focused;
+- injects the shared focus-visible treatment into document or Shadow DOM as needed.
+
+Important: the bridge installs on `window` capture. Mature legacy shortcut handlers live on `document` capture, so the shared interaction contract becomes the effective owner without requiring a risky edit to both giant mature files in the same phase.
+
+Legacy Alt+Q branches still exist inside the giant files as unreachable fallback for recognized modes. Remove them only in a separately characterized cleanup phase.
+
+## 3. Interaction flow
+
+```text
+keyboard event
+  -> interaction-core.js (intent)
+  -> interaction-bridge.js (surface + mode)
+  -> primary DOM target
+  -> native focus / native Enter or Space behavior
+```
+
+Examples:
+
+```text
+Prompt + Alt+Q
+  -> SELECT_PRIMARY
+  -> Prompt adapter
+  -> first visible Copy button
+
+REDS + Alt+Q
+  -> SELECT_PRIMARY
+  -> REDS adapter
+  -> current search field
+
+LOG + Alt+Q
+  -> SELECT_PRIMARY
+  -> Log Relay adapter
+  -> first visible row checkbox
+```
+
+No `SELECT_PRIMARY` path may change the active mode.
+
+## 4. Major module responsibilities
+
+### Mature Quick Links UI
+
+- `sidepanel.js` — Side Panel Links / REDS / Prompt state, rendering, editing, shared search, filters, mature event handlers and storage synchronization.
+- `content-floating-search.js` — Floating POP Links / REDS / Prompt renderer, page-context lifecycle, storage resilience and mature fallback handlers.
+- `background.js` — serialized state commits, conflict-aware merging, atomic counters, dynamic URL resolution, command routing and Side Panel presence coordination.
+- `auto-project-rules.js` — deterministic URL normalization, duplicate comparison, LINE WORKS normalization, automatic project matching and record normalization.
+- `quick-links-import-core.js` — DOM-free import parsing, duplicate keys, merge/compaction rules and project reconstruction.
+
+### Shared infrastructure
+
+- `interaction-core.js` — interaction semantics.
+- `interaction-bridge.js` — surface adapters and keyboard focus/navigation.
+- `qpl-design-tokens.css` — shared spacing, radius, typography, focus and restrained shadow tokens.
+- `shortcut-registry.js` — canonical Log Relay shortcut matching plus existing shortcut registry/documentation responsibilities.
+- `search-auto-clear-background.js` — shared-search expiry lifecycle.
 
 ### REDS / X search
 
-- `reds-x-search-core.js` owns the deterministic, DOM-free X-search rules: default `REDSOFFICIAL`, account normalization, end-date increment, query construction and final X URL construction. It is CommonJS-compatible so tests can exercise the exact production logic directly.
-- `sidepanel.js` owns the effective X-search entry point and delegates URL construction to `reds-x-search-core.js`, with the v1.15.6 fixed-account builder retained only as a core-not-yet-loaded fallback.
-- `reds-x-search-polish.js` owns only the side-panel UI layer: editable account field injection, button state, account-input Enter handling, labels and DOM-lifecycle waiting.
-- `sidepanel-wrapper.js` must load `reds-x-search-core.js` before `reds-x-search-polish.js`.
-- PHASE 4 removed the polish-layer function overrides and capture-phase X-button interception. Button, Alt+X and routed runtime actions now use the mature `sidepanel.js` entry point directly.
+- `reds-x-search-core.js` owns deterministic X-search rules and URL construction.
+- `reds-x-search-polish.js` owns only Side Panel presentation additions.
+- mature Side Panel entry points continue to execute the search.
 
 ### Log Relay
 
 - `log-relay-core.js` — pure state/key/date helpers.
 - `log-relay-background.js` — Log Relay storage mutation owner.
 - `log-relay-capture.js` — page-side one-line capture UI.
-- `log-relay-panel.js` — LOG mode list/status/edit/bulk UI.
-- `log-relay-polish.js` — current light-blue translucent Log Relay visual layer and individual-delete UX patch.
-- `log-relay-toggle-background.js` — service-worker side-panel toggle state and `chrome.sidePanel.open/close` handling.
-- `log-relay-toggle-panel.js` — side-panel presence reporting and in-panel close shortcut handling.
-- `log-relay-content-command-guard.js` — prevents old page-side `Alt+Shift+M` handling from double-firing the Chrome command path.
+- `log-relay-panel.js` — LOG list/status/edit/bulk UI.
+- `log-relay-polish.js` — Log Relay visual layer.
+- `log-relay-toggle-background.js` — side-panel toggle state and `chrome.sidePanel.open/close` handling.
+- `log-relay-toggle-panel.js` — panel presence reporting and in-panel close shortcut handling.
+- `log-relay-content-command-guard.js` — prevents old content paths from double-firing the Chrome command.
 
-The obsolete `log-relay-command-open-fix.js` shim was removed during PHASE 3 after confirming that it was not loaded by the manifest/wrapper graph and only watched the retired `quick-links-open-log` command. The active command remains `quick-links-toggle-log` through `log-relay-toggle-background.js`.
+## 5. State and mutation boundaries
 
-## 3. Important event paths
+Main Quick Links writes use `quickLinksCommitState` and serialized merge logic in `background.js`. Do not replace this with view-local blind `chrome.storage.local.set()` writes.
 
-### Quick Links mode commands
+Log Relay entry mutation belongs to `log-relay-background.js`.
 
-```text
-Chrome command (Alt+1 / Alt+2 / Alt+3 / configured clear-search)
-  -> background.js
-  -> quickLinksFloatingShortcut / quickLinksSidepanelShortcut
-  -> active content UI or side panel
-```
+Shared search remains coordinated through `sharedSearchQuery` / `sharedSearchState` revision metadata.
 
-### REDS X search
+Do not rename storage keys or migration markers as part of UI cleanup without an explicit migration plan.
 
-```text
-button / Enter / Alt+X or routed side-panel action
-  -> sidepanel.js runRedsXSearchSidepanel
-  -> sidepanel.js buildRedsXUrlSidepanel
-  -> reds-x-search-core.js
-  -> deterministic query + X URL
-  -> quickLinksOpenTab / chrome.tabs.create path
-```
+## 6. Chrome execution-context exception
 
-Current query contract is covered by `tests/reds-x-search-characterization.test.js`, which imports `reds-x-search-core.js` directly and pins the production ownership boundary between `sidepanel.js` and the UI-only polish layer.
+Shared *meaning* does not imply one physical listener for every action.
 
-### Log capture
+Chrome user-gesture-sensitive flows—especially `chrome.sidePanel.open()` / toggle paths—must stay in execution contexts that preserve the original eligible user gesture. Do not centralize those merely for DRYness.
+
+The safe pattern is:
 
 ```text
-Alt+M on page
-  -> log-relay-capture.js
-  -> runtime message: logRelayStore / add
-  -> log-relay-background.js
-  -> chrome.storage.local
+shared action name / contract
+  -> required Chrome execution context
+  -> context-specific effect
 ```
 
-### Log panel toggle
+## 7. Visual system
 
-```text
-Alt+Shift+M
-  -> Chrome command: quick-links-toggle-log
-  -> log-relay-toggle-background.js
-  -> chrome.sidePanel.open() or chrome.sidePanel.close()
-  -> transient logRelayOpenPanelRequest
-  -> side panel activates LOG mode
-```
+`qpl-design-tokens.css` now keeps a deliberately small vocabulary:
 
-The open call must begin in the original eligible user-gesture turn. Do not introduce an `await` before `chrome.sidePanel.open()` in that path.
+- spacing: 4 / 8 / 12 / 16 / 24;
+- radius: 6 / 10 / 14;
+- typography: micro / meta / body / title;
+- focus: color / width / offset;
+- shadows: flat by default, floating-layer shadow separately.
 
-## 4. Runtime message catalog
+Cards and ordinary controls should primarily use border, spacing and typography for hierarchy. Reserve stronger shadows for true floating surfaces and modals.
 
-### Main Quick Links
+Keyboard focus is a first-class UI state. See `INTERACTION_CONTRACT.md`.
 
-- `quickLinksEnsureAutoProjectRules` — ensure/migrate automatic classification rules.
-- `quickLinksCommitState` — conflict-aware state commit.
-- `quickLinksRecordItemClick` — atomic link click count/time update.
-- `quickLinksRecordPromptCopy` — atomic prompt copy count/time update.
-- `quickLinksSidePanelHeartbeat` — side-panel presence heartbeat.
-- `quickLinksGetSidePanelWindowState` — query presence for a window.
-- `quickLinksGetCurrentWindowId` — resolve active/last-focused window ID.
-- `quickLinksResolveUrl` — resolve `quicklinks://` dynamic URL.
-- `quickLinksOpenTab` — resolve/open a URL in a tab.
-- `quickLinksOpenSidePanel` — request normal Quick Links side panel.
-- `quickLinksFloatingShortcut` — route a command to page-side floating UI.
-- `quickLinksSidepanelShortcut` — route a command/search action to the side panel.
+## 8. Release architecture
 
-### Log Relay
+GitHub Actions is part of runtime correctness, not a convenience script.
 
-- `logRelayStore` — Log Relay data operations (`list`, `add`, `updateMemo`, `moveMany`, `deleteMany`, `setSort`, `rebuildIndex`).
-- `logRelayPanelPresence` — current LOG-mode panel presence sent to toggle background logic.
+Pipeline:
 
-Message names are currently string literals in their owning modules. Do not centralize them during low-risk cleanup merely for stylistic consistency.
+1. parse manifest;
+2. syntax-check JavaScript;
+3. validate repository manifest references;
+4. run deterministic tests;
+5. build runtime-only ZIP;
+6. inspect ZIP root;
+7. extract the ZIP and re-validate the *packaged* manifest references;
+8. verify interaction runtime load order inside the packaged manifest;
+9. reject retired shim / development Markdown leakage;
+10. upload artifact and publish validated ZIP to `release/`.
 
-## 5. Storage catalog
+The packaged ZIP—not the repository tree—is the final runtime artifact.
 
-### Main Quick Links (`chrome.storage.local`)
+## 9. Tests
 
-- `items` — Quick Link records.
-- `projects` — project/category names.
-- `projectColors` — project color map.
-- `currentSortMode` — Links sort mode.
-- `showArchived` — archive visibility.
-- `floatingSearchEnabled` — page-side floating UI setting.
-- `autoProjectRules` — deterministic automatic classification rules.
-- `promptMemos` — Prompt records.
-- `promptCategories` — Prompt categories.
-- `promptSortMode` — Prompt sort mode.
-- `sharedSearchQuery` — compatibility/current shared query string.
-- `sharedSearchState` — query, revision, writer and timestamp synchronization state.
-- `sidePanelHeartbeatsByWindow` — side-panel presence by Chrome window.
+Core deterministic coverage includes:
 
-Migration markers include:
+- Log Relay state;
+- REDS/X URL rules;
+- auto-project rules;
+- storage/dynamic URL characterization;
+- import/deduplication;
+- interaction intent and cross-surface routing;
+- runtime interaction load contract.
 
-- `quickLinksAutoRuleLineworksTalkV1`
-- `quickLinksBuiltinBacklogLastTwoDaysV1`
-- `quickLinksBuiltinBacklogDynamicRangesV2`
+Interaction-specific tests are in:
 
-### Log Relay
+- `tests/interaction-core.test.js`
+- `tests/interaction-runtime-contract.test.js`
 
-- `logRelayEntry:<id>` — entry source of truth in local storage.
-- `logRelayIndex` — rebuildable entry ID index.
-- `logRelaySortDirection` — sort preference.
-- `logRelayOpenPanelRequest` — transient open request; `chrome.storage.session` preferred, local fallback for compatibility.
+## 10. Refactor rule
 
-Do not rename storage keys during cleanup without an explicit migration plan.
+Before moving mature behavior:
 
-## 6. Conflict / mutation ownership
-
-Main Quick Links writes use `quickLinksCommitState` and the serialized merge logic in `background.js`. This preserves concurrent changes and avoids stale views blindly overwriting newer data.
-
-Log Relay entry mutation belongs to `log-relay-background.js`. Capture and panel code should not directly mutate Log Relay entry records.
-
-## 7. Tests
-
-Current deterministic suite:
-
-- `tests/log-relay-core.test.js`
-- `tests/reds-x-search-characterization.test.js`
-- `tests/auto-project-rules-characterization.test.js`
-- `tests/background-storage-and-dynamic-url-characterization.test.js`
-- `tests/import-data-core-characterization.test.js`
-
-The REDS/X characterization tests now exercise the pure production core directly. The other characterization tests may still assert implementation details when needed to prevent behavior drift during refactoring.
-
-## 8. Cleanup risk map
-
-### LEVEL 0 — documentation only
-
-Safe: current behavior/architecture/validation documentation.
-
-### LEVEL 1 — low risk with tests
-
-Completed so far:
-
-- removed the confirmed-dead `log-relay-command-open-fix.js` shim;
-- extracted deterministic REDS/X search logic into `reds-x-search-core.js` without changing user-visible behavior;
-- extracted deterministic import/deduplication logic into `quick-links-import-core.js` after mapping giant-file responsibilities.
-
-Potential future LEVEL 1 work must still be judged by change surface. The duplicated dynamic Backlog/JST helpers span three large runtime files, so they are not being consolidated merely because the logic is similar.
-
-### LEVEL 2 — medium risk
-
-- Completed in PHASE 4: moved X-search URL construction ownership into the mature side-panel implementation and removed runtime function overrides/capture interception from the polish layer.
-- PHASE 5 mapped both giant files and extracted only the DOM-free import/deduplication core. Broader feature splits remain medium risk and require dedicated characterization first.
-
-### LEVEL 3 — high risk / do not touch during ordinary cleanup
-
-- Replace `sidepanel-wrapper.js` load architecture.
-- Consolidate the multi-context `Alt+Shift+M` architecture solely for DRYness.
-- Change storage schemas or migration markers.
-- Change side-panel user-gesture timing.
-
-## 9. Refactor rule
-
-Before moving behavior:
-
-1. confirm `CURRENT_BEHAVIOR.md`;
-2. add/keep characterization coverage;
-3. make one responsibility-level change;
+1. identify one named responsibility;
+2. pin user-visible behavior with characterization tests;
+3. extract or reroute only that responsibility;
 4. run syntax + deterministic tests;
-5. treat unexpected behavior drift as a regression, not as a convenient new specification.
+5. verify packaged runtime, not only repository source;
+6. treat unexpected behavior drift as a regression.
+
+Prefer vertical slices such as `SELECT_PRIMARY` over a giant “clean up all shortcuts” rewrite.
