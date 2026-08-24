@@ -33,6 +33,7 @@
     await loadScript('reds-x-search-core.js');
     await loadScript('reds-x-search-polish.js');
     await loadScript('shortcut-registry.js');
+    await loadScript('prompt-shortcut-focus.js');
     await loadScript('log-relay-core.js');
     await loadScript('log-relay-panel.js');
     await loadScript('log-relay-polish.js');
