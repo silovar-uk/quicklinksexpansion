@@ -5,14 +5,14 @@
     const source = await response.text();
 
     // Keep the mature sidepanel.html as the source of truth, but avoid regex-based HTML rewriting.
-    // After the core page has loaded, attach the shared design layer and focused feature modules explicitly.
+    // After the core page has loaded, attach the shared shell and focused feature modules explicitly.
     document.open();
     document.write(source);
     document.close();
 
     // document.write() may leave the rewritten page in a loading state while sidepanel.js is still
     // executing. Wait until the base UI and its DOMContentLoaded handlers are complete before
-    // feature modules patch or extend the page.
+    // shell/feature modules patch or extend the page.
     if (document.readyState === 'loading') {
       await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
     }
@@ -25,7 +25,7 @@
     };
 
     loadStylesheet('qpl-design-tokens.css');
-    loadStylesheet('sidepanel-toolbar-polish.css');
+    loadStylesheet('sidepanel-shell.css');
 
     const loadScript = src => new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -35,7 +35,7 @@
       document.body.appendChild(script);
     });
 
-    await loadScript('sidepanel-toolbar-polish.js');
+    await loadScript('sidepanel-shell.js');
     await loadScript('reds-x-search-core.js');
     await loadScript('reds-x-search-polish.js');
     await loadScript('shortcut-registry.js');
