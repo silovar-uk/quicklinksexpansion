@@ -61,7 +61,7 @@ jobs:
           version="$(node -p "require('./manifest.json').version")"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Build installable ZIP
+      - name: Build installable runtime-only ZIP
         shell: bash
         run: |
           set -euo pipefail
@@ -77,6 +77,8 @@ jobs:
             --exclude 'dist/' \
             --exclude 'release/' \
             --exclude 'tests/' \
+            --exclude '*.md' \
+            --exclude 'VALIDATION_RESULTS.json' \
             --exclude 'icons/Gemini_Generated_Image_*.png' \
             ./ "$package_dir/"
 
@@ -87,21 +89,17 @@ jobs:
 
           test -f "$zip_path"
 
-      - name: Verify ZIP root structure and Prompt shortcut file
+      - name: Verify packaged runtime contract
         shell: bash
         run: |
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
           zip_path="dist/quicklinksexpansion-v${version}.zip"
+          verify_dir="dist/verify-package"
           entries="$(unzip -Z1 "$zip_path")"
 
           if ! grep -Fxq 'manifest.json' <<< "$entries"; then
             echo 'manifest.json is not at ZIP root.' >&2
-            exit 1
-          fi
-
-          if ! grep -Fxq 'prompt-shortcut-focus.js' <<< "$entries"; then
-            echo 'prompt-shortcut-focus.js is missing from ZIP root.' >&2
             exit 1
           fi
 
@@ -110,17 +108,62 @@ jobs:
             exit 1
           fi
 
-          node <<'NODE'
+          if grep -Eq '\.md$' <<< "$entries"; then
+            echo 'Development Markdown files must not ship in the extension ZIP.' >&2
+            exit 1
+          fi
+
+          for required in interaction-core.js interaction-bridge.js; do
+            if ! grep -Fxq "$required" <<< "$entries"; then
+              echo "$required is missing from ZIP root." >&2
+              exit 1
+            fi
+          done
+
+          if grep -Fxq 'prompt-shortcut-focus.js' <<< "$entries"; then
+            echo 'Retired prompt-shortcut-focus.js must not ship.' >&2
+            exit 1
+          fi
+
+          rm -rf "$verify_dir"
+          mkdir -p "$verify_dir"
+          unzip -q "$zip_path" -d "$verify_dir"
+
+          VERIFY_DIR="$verify_dir" node <<'NODE'
           const fs = require('fs');
-          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
-          const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
-          if (!scripts.includes('prompt-shortcut-focus.js')) {
-            console.error('manifest.json does not load prompt-shortcut-focus.js as a content script.');
+          const path = require('path');
+          const root = process.env.VERIFY_DIR;
+          const manifestPath = path.join(root, 'manifest.json');
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const refs = [
+            manifest.background?.service_worker,
+            manifest.side_panel?.default_path,
+            ...Object.values(manifest.icons || {}),
+            ...Object.values(manifest.action?.default_icon || {}),
+            ...(manifest.content_scripts || []).flatMap(entry => entry.js || [])
+          ].filter(Boolean);
+          const missing = [...new Set(refs)].filter(file => !fs.existsSync(path.join(root, file)));
+          if (missing.length) {
+            console.error('Packaged manifest references missing files:\n' + missing.join('\n'));
             process.exit(1);
           }
+
+          const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
+          const coreIndex = scripts.indexOf('interaction-core.js');
+          const bridgeIndex = scripts.indexOf('interaction-bridge.js');
+          const floatingIndex = scripts.indexOf('content-floating-search.js');
+          if (coreIndex < 0 || bridgeIndex <= coreIndex || floatingIndex <= bridgeIndex) {
+            console.error('Packaged interaction runtime load order is invalid.');
+            process.exit(1);
+          }
+          if (scripts.includes('prompt-shortcut-focus.js')) {
+            console.error('Packaged manifest still references retired prompt-shortcut-focus.js.');
+            process.exit(1);
+          }
+          console.log(`Validated ${new Set(refs).size} packaged manifest references and interaction load order.`);
           NODE
 
-          echo 'ZIP root and Prompt Alt+Q wiring are valid.'
+          echo 'Packaged runtime contract is valid.'
           printf '%s\n' "$entries" | head -40
 
       - name: Upload ZIP
