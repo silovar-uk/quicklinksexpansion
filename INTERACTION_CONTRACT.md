@@ -1,7 +1,7 @@
 # Quick Project Links — Interaction Contract
 
-Baseline: **v1.15.8**  
-Updated: **2026-08-25**
+Baseline: **v1.15.9**  
+Updated: **2026-08-27**
 
 This document defines interaction meaning independently from Side Panel / Floating POP DOM details.
 
@@ -48,6 +48,18 @@ Bindings after a primary list target is focused:
 
 Native `Enter` / `Space` activation remains owned by the actual focused DOM control. The interaction layer should not synthesize a second activation path when native semantics are sufficient.
 
+### Background-open continuity
+
+Ctrl/Cmd+click and middle-click are background-open intents. They must not destroy the user's current browsing context while click history or other non-structural metadata is persisted.
+
+- Side Panel and Floating POP must preserve the clicked Link's visual position across list re-rendering.
+- If click-count sorting moves the clicked Link, preserve that Link as the visual anchor rather than blindly restoring an old absolute `scrollTop`.
+- Preserve keyboard focus when the activated Link owned focus before the re-render.
+- A new explicit user navigation intent (wheel, touch, pointer, ordinary key navigation) cancels stale restoration.
+- Restoration may react to DOM mutation/layout completion, but must not depend on a guessed delay to make the behavior work.
+
+`link-browsing-context-guard.js` owns this cross-surface continuity behavior.
+
 ## Surfaces
 
 ### Side Panel
@@ -73,10 +85,11 @@ Surface selectors belong to `interaction-bridge.js`. Shortcut meaning belongs to
 
 - `interaction-core.js` is DOM-free and CommonJS-compatible for deterministic tests.
 - `interaction-bridge.js` detects Side Panel vs Floating POP, resolves the active mode, owns primary-target focus/navigation, and installs the capture-phase keyboard bridge.
-- `manifest.json` loads the interaction runtime before `content-floating-search.js`.
-- `sidepanel-wrapper.js` loads the interaction runtime after the mature side panel has initialized.
+- `link-browsing-context-guard.js` preserves Link list context for background-open intents across Side Panel and Floating POP re-renders.
+- `manifest.json` loads the interaction runtime before `content-floating-search.js`, then loads the browsing-context guard after the Floating POP runtime exists.
+- `sidepanel-wrapper.js` loads the interaction runtime and browsing-context guard after the mature side panel has initialized.
 
-The mature giant files still contain legacy Alt+Q branches. For v1.15.8 the shared bridge is the effective owner because its window-capture listener consumes recognized interactions before the document-capture legacy handlers. Remove legacy branches only in a separately characterized giant-file cleanup phase; do not reintroduce new behavior into them.
+The mature giant files still contain legacy Alt+Q branches. For v1.15.9 the shared bridge is the effective owner because its window-capture listener consumes recognized interactions before the document-capture legacy handlers. Remove legacy branches only in a separately characterized giant-file cleanup phase; do not reintroduce new behavior into them.
 
 ## Visual focus contract
 
@@ -98,6 +111,8 @@ Reject a change if it:
 
 - makes `Alt+Q` switch to Links from Prompt, REDS or LOG;
 - fixes only Side Panel or only Floating POP where both surfaces exist;
+- lets Ctrl/Cmd+click or middle-click jump a Link list back to the top after click-history persistence;
+- restores only an old absolute `scrollTop` when click-count sorting has moved the activated item;
 - adds a Prompt-only / Links-only shortcut shim for a mode-relative action;
 - handles visual selection separately from actual keyboard focus without a clear reason;
 - lets an empty list fall through to legacy Links selection;
@@ -111,6 +126,8 @@ Reject a change if it:
 
 `tests/interaction-runtime-contract.test.js` verifies manifest/wrapper load order, retirement of the Prompt-only shim and presence of shared focus tokens.
 
+`tests/browsing-context-guard.test.js` covers Ctrl/Cmd/middle-click intent detection, anchored scroll restoration math, scroll-bound clamping, and runtime loading through both surfaces.
+
 ## Release integrity
 
 The packaged ZIP is treated as the real runtime artifact, not merely a copy of the repository.
@@ -119,8 +136,8 @@ CI must verify after ZIP creation that:
 
 - `manifest.json` is at ZIP root;
 - every packaged manifest reference exists inside the extracted ZIP;
-- `interaction-core.js` and `interaction-bridge.js` are present;
-- their content-script order precedes `content-floating-search.js`;
+- `interaction-core.js`, `interaction-bridge.js` and `link-browsing-context-guard.js` are present;
+- the interaction content-script order precedes `content-floating-search.js` and the browsing-context guard follows it;
 - the retired Prompt-only shim is absent;
 - development Markdown files are not shipped.
 
