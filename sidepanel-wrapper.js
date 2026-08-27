@@ -35,6 +35,7 @@
     await loadScript('shortcut-registry.js');
     await loadScript('interaction-core.js');
     await loadScript('interaction-bridge.js');
+    await loadScript('link-browsing-context-guard.js');
     await loadScript('log-relay-core.js');
     await loadScript('log-relay-panel.js');
     await loadScript('log-relay-polish.js');
