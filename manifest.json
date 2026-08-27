@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.8",
+  "version": "1.15.9",
   "description": "Links / REDS / Promptで共通のキーボード選択契約と、Alt+Shift+MによるLog Relay開閉に対応",
   "permissions": [
     "sidePanel",
@@ -50,6 +50,7 @@
         "interaction-core.js",
         "interaction-bridge.js",
         "content-floating-search.js",
+        "link-browsing-context-guard.js",
         "log-relay-capture.js"
       ],
       "run_at": "document_idle"
