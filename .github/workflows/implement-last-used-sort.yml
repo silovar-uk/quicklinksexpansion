@@ -1,0 +1,108 @@
+name: Implement last-used link sort
+
+on:
+  push:
+    branches:
+      - feat/last-used-sort
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply focused implementation
+        run: node .github/implement-last-used-sort.cjs
+
+      - name: Validate JavaScript and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find . -type f -name '*.js' -not -path './backup/*' -not -path './dist/*' -not -path './release/*' -print0)
+
+      - name: Validate manifest references
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          const refs = [
+            manifest.background?.service_worker,
+            manifest.side_panel?.default_path,
+            ...Object.values(manifest.icons || {}),
+            ...Object.values(manifest.action?.default_icon || {}),
+            ...(manifest.content_scripts || []).flatMap(entry => entry.js || [])
+          ].filter(Boolean);
+          const missing = [...new Set(refs)].filter(file => !fs.existsSync(file));
+          if (missing.length) throw new Error('Missing manifest references: ' + missing.join(', '));
+          console.log(`Validated ${new Set(refs).size} manifest references.`);
+          NODE
+
+      - name: Run deterministic tests
+        run: node --test tests/*.test.js
+
+      - name: Build and verify installable ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./manifest.json').version")"
+          package_dir="dist/package-root"
+          zip_path="dist/quicklinksexpansion-v${version}.zip"
+          mkdir -p "$package_dir"
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'backup/' \
+            --exclude 'dist/' \
+            --exclude 'release/' \
+            --exclude 'tests/' \
+            --exclude '*.md' \
+            --exclude 'VALIDATION_RESULTS.json' \
+            --exclude 'icons/Gemini_Generated_Image_*.png' \
+            ./ "$package_dir/"
+          (cd "$package_dir" && zip -qr "../quicklinksexpansion-v${version}.zip" .)
+          entries="$(unzip -Z1 "$zip_path")"
+          grep -Fxq 'manifest.json' <<< "$entries"
+          ! grep -Eq '^quicklinksexpansion/' <<< "$entries"
+          ! grep -Eq '\.md$' <<< "$entries"
+          for required in interaction-core.js interaction-bridge.js; do
+            grep -Fxq "$required" <<< "$entries"
+          done
+          rm -rf dist/verify-package
+          mkdir -p dist/verify-package
+          unzip -q "$zip_path" -d dist/verify-package
+          node <<'NODE'
+          const fs = require('fs');
+          const root = 'dist/verify-package';
+          const manifest = JSON.parse(fs.readFileSync(`${root}/manifest.json`, 'utf8'));
+          const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
+          const coreIndex = scripts.indexOf('interaction-core.js');
+          const bridgeIndex = scripts.indexOf('interaction-bridge.js');
+          const floatingIndex = scripts.indexOf('content-floating-search.js');
+          if (coreIndex < 0 || bridgeIndex <= coreIndex || floatingIndex <= bridgeIndex) {
+            throw new Error('Packaged interaction runtime load order is invalid.');
+          }
+          NODE
+
+      - name: Commit validated implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sidepanel.js content-floating-search.js manifest.json CURRENT_BEHAVIOR.md tests/link-last-used-sort-characterization.test.js
+          git diff --cached --stat
+          git commit -m "Add last-used link sort"
+          git push origin HEAD:feat/last-used-sort
