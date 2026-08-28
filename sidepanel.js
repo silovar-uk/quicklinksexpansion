@@ -33,7 +33,7 @@ let editSaveInFlight = false;
 let editingProjectName = null;
 let selectedColor = null;
 
-// ソートモード: 'DATE' (日付), 'PROJECT' (分類), 'CLICKS' (回数)
+// ソートモード: 'DATE' (日付), 'PROJECT' (分類), 'CLICKS' (回数), 'LAST_USED' (最終使用)
 let currentSortMode = 'DATE'; 
 let searchQuery = '';
 // 検索中だけ使う二次分類フィルター。通常の分類タブ(currentFilter)とは独立。
@@ -1604,7 +1604,7 @@ function renderList() {
 
   // ソート処理
   displayItems.sort((a, b) => {
-    // ユーザーが選択した現在のソートモード（新着順・分類順・回数順）のみに従う
+    // ユーザーが選択した現在のソートモード（新着順・分類順・回数順・使用順）のみに従う
     if (currentSortMode === 'PROJECT') {
       if (a.projectName < b.projectName) return -1;
       if (a.projectName > b.projectName) return 1;
@@ -1614,6 +1614,14 @@ function renderList() {
       const countB = b.clickCount || 0;
       if (countA !== countB) return countB - countA;
       return new Date(b.addedAt) - new Date(a.addedAt);
+    } else if (currentSortMode === 'LAST_USED') {
+      const lastUsedA = getLinkSortTimeSidepanel(a.lastClickedAt);
+      const lastUsedB = getLinkSortTimeSidepanel(b.lastClickedAt);
+      if (lastUsedA !== lastUsedB) return lastUsedB - lastUsedA;
+      const addedA = getLinkSortTimeSidepanel(a.addedAt);
+      const addedB = getLinkSortTimeSidepanel(b.addedAt);
+      if (addedA !== addedB) return addedB - addedA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     } else {
       return new Date(b.addedAt) - new Date(a.addedAt);
     }
@@ -2373,16 +2381,22 @@ Quick Links：${items.length}件
   }
 }
 
-// リンク一覧は選択中の並び順（追加日／分類／回数）で表示するため、カードの手動ドラッグは行いません。
+// リンク一覧は選択中の並び順（追加日／分類／回数／使用）で表示するため、カードの手動ドラッグは行いません。
+
+function getLinkSortTimeSidepanel(value) {
+  const time = Date.parse(String(value || ''));
+  return Number.isFinite(time) ? time : 0;
+}
 
 function normalizeLinkSortModeSidepanel(value) {
-  return ['DATE', 'PROJECT', 'CLICKS'].includes(value) ? value : 'DATE';
+  return ['DATE', 'PROJECT', 'CLICKS', 'LAST_USED'].includes(value) ? value : 'DATE';
 }
 
 function getNextLinkSortModeSidepanel(value = currentSortMode) {
   const mode = normalizeLinkSortModeSidepanel(value);
   if (mode === 'DATE') return 'PROJECT';
   if (mode === 'PROJECT') return 'CLICKS';
+  if (mode === 'CLICKS') return 'LAST_USED';
   return 'DATE';
 }
 
@@ -2406,6 +2420,10 @@ function updateSortButton() {
     case 'CLICKS':
       icon.textContent = '🔥';
       label.textContent = '回数順';
+      break;
+    case 'LAST_USED':
+      icon.textContent = '🕘';
+      label.textContent = '使用順';
       break;
     case 'DATE':
     default:

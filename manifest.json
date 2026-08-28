@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.9",
+  "version": "1.15.10",
   "description": "Links / REDS / Promptで共通のキーボード選択契約と、Alt+Shift+MによるLog Relay開閉に対応",
   "permissions": [
     "sidePanel",
