@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.9",
+  "version": "1.15.10",
   "description": "Links / REDS / Promptで共通のキーボード選択契約と、Alt+Shift+MによるLog Relay開閉に対応",
   "permissions": [
     "sidePanel",
@@ -14,17 +14,17 @@
   ],
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
-    "128": "icons/icon128.png",
-    "32": "icons/icon32.png"
+    "128": "icons/icon128.png"
   },
   "action": {
     "default_title": "Quick Links",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
-      "128": "icons/icon128.png",
-      "32": "icons/icon32.png"
+      "128": "icons/icon128.png"
     }
   },
   "background": {

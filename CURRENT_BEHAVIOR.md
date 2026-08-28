@@ -1,6 +1,6 @@
 # Quick Project Links — Current Behavior Contract
 
-Baseline: **v1.15.8**  
+Baseline: **v1.15.10**  
 Updated: **2026-08-25**  
 Purpose: preserve user-visible behavior while the codebase is reorganized.
 
@@ -63,6 +63,10 @@ Chrome user-gesture-sensitive actions may still require handlers in more than on
 - Button / Enter / Alt+X / runtime paths must reach the same effective behavior.
 
 ## Links and URL normalization
+
+- Link sort modes are added date / project / click count / last used.
+- Last-used sort uses valid `lastClickedAt` descending; never-used or invalid timestamps come after used links and fall back to added date descending.
+- Side Panel and Floating POP must interpret the persisted link sort mode with the same meaning.
 
 - `http:` / `https:` links are valid.
 - unsafe/unsupported schemes such as `javascript:` are rejected.

@@ -531,13 +531,14 @@
 
 
   function normalizeLinkSortMode(value) {
-    return ['DATE', 'PROJECT', 'CLICKS'].includes(value) ? value : 'DATE';
+    return ['DATE', 'PROJECT', 'CLICKS', 'LAST_USED'].includes(value) ? value : 'DATE';
   }
 
   function getLinkSortPresentation(mode = currentSortMode) {
     const normalized = normalizeLinkSortMode(mode);
     if (normalized === 'PROJECT') return { icon: '▦', label: '分類順' };
     if (normalized === 'CLICKS') return { icon: '↗', label: '回数順' };
+    if (normalized === 'LAST_USED') return { icon: '↺', label: '使用順' };
     return { icon: '◷', label: '追加日順' };
   }
 
@@ -545,6 +546,7 @@
     const normalized = normalizeLinkSortMode(mode);
     if (normalized === 'DATE') return 'PROJECT';
     if (normalized === 'PROJECT') return 'CLICKS';
+    if (normalized === 'CLICKS') return 'LAST_USED';
     return 'DATE';
   }
 
@@ -3492,6 +3494,11 @@
     setTimeout(() => shadow.getElementById('ql-prompt-search')?.focus(), 0);
   }
 
+  function getFloatingLinkSortTime(value) {
+    const time = Date.parse(String(value || ''));
+    return Number.isFinite(time) ? time : 0;
+  }
+
   function compareFloatingItems(a, b) {
     if (!!a.archived !== !!b.archived) return a.archived ? 1 : -1;
     if (currentSortMode === 'PROJECT') {
@@ -3500,6 +3507,12 @@
     } else if (currentSortMode === 'CLICKS') {
       const clickDiff = Number(b.clickCount || 0) - Number(a.clickCount || 0);
       if (clickDiff !== 0) return clickDiff;
+    } else if (currentSortMode === 'LAST_USED') {
+      const lastUsedDiff = getFloatingLinkSortTime(b.lastClickedAt) - getFloatingLinkSortTime(a.lastClickedAt);
+      if (lastUsedDiff !== 0) return lastUsedDiff;
+      const addedDiff = getFloatingLinkSortTime(b.addedAt) - getFloatingLinkSortTime(a.addedAt);
+      if (addedDiff !== 0) return addedDiff;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     }
     return new Date(b.addedAt || 0) - new Date(a.addedAt || 0);
   }
