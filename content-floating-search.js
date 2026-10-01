@@ -2262,7 +2262,7 @@
                 <div class="ql-title">Quick Links 検索</div>
               </div>
               <div class="ql-header-actions">
-                <button class="ql-panel-open-btn" id="ql-open-sidepanel" title="サイドパネルを開く" aria-label="サイドパネルを開く">
+                <button class="ql-panel-open-btn" id="ql-open-sidepanel" title="サイドパネルで続きを開く" aria-label="サイドパネルで続きを開く">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="4" width="18" height="16" rx="2"></rect>
                     <path d="M9 4v16"></path>
@@ -3943,9 +3943,26 @@
     }
   }
 
+  function buildFloatingUiContext() {
+    const Contract = globalThis.QuickLinksContract;
+    const mode = activeTab === 'reds' ? 'x-search' : activeTab;
+    return Contract?.normalizeUiContext
+      ? Contract.normalizeUiContext({
+          mode,
+          query: sharedSearchQuery,
+          projectFilter: activeTab === 'links' ? searchProjectFilter : '',
+          promptCategory: activeTab === 'prompts' ? promptCategoryFilter : ''
+        })
+      : { mode, query: sharedSearchQuery };
+  }
+
   async function openSidePanel() {
     try {
-      const response = await sendRuntimeMessage({ type: 'quickLinksOpenSidePanel' });
+      const Contract = globalThis.QuickLinksContract;
+      const response = await sendRuntimeMessage({
+        type: Contract?.MESSAGES?.HANDOFF_TO_SIDE_PANEL || 'quickLinksHandoffToSidePanel',
+        context: buildFloatingUiContext()
+      });
       if (!response?.ok) throw new Error(response?.error || 'サイドパネルを開けませんでした。');
     } catch (error) {
       if (isExtensionContextError(error)) markExtensionContextUnavailable(error);
@@ -3958,45 +3975,6 @@
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
-  }
-
-  function applyRedsQuickDate(rangeType) {
-    const now = new Date();
-    const start = new Date(now);
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-    if (rangeType === 'today') {
-      redsDateStart = formatDateInputValue(now);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'yesterday') {
-      start.setDate(now.getDate() - 1);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(start);
-    } else if (rangeType === 'week') {
-      start.setDate(now.getDate() - 7);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'month') {
-      start.setDate(now.getDate() - 30);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'year') {
-      redsDateStart = formatDateInputValue(oneYearAgo);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'older') {
-      redsDateStart = '';
-      redsDateEnd = formatDateInputValue(oneYearAgo);
-    }
-    render();
-  }
-
-  function addDaysToDateInput(value, days = 1) {
-    if (!value) return '';
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return value;
-    date.setDate(date.getDate() + days);
-    return formatDateInputValue(date);
   }
 
   function collectFloatingXInput() {
