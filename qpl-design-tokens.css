@@ -78,3 +78,47 @@
 .app-mode-tabs .app-mode-shortcut {
   display: none !important;
 }
+
+
+/* v1.17 — modes behave like one workspace selector, not four mini-brands. */
+.app-mode-tabs {
+  padding: var(--qpl-space-1) !important;
+  background: #eef2f6 !important;
+  border: 1px solid var(--qpl-border) !important;
+  border-radius: var(--qpl-radius-lg) !important;
+}
+
+.app-mode-tabs .app-mode-btn,
+#log-relay-mode {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--qpl-muted) !important;
+  box-shadow: none !important;
+}
+
+.app-mode-tabs .app-mode-btn:hover,
+#log-relay-mode:hover {
+  background: rgba(255,255,255,.58) !important;
+  color: var(--qpl-text-strong) !important;
+}
+
+.app-mode-tabs .app-mode-btn.active,
+#log-relay-mode.active {
+  background: var(--qpl-surface) !important;
+  border-color: var(--qpl-border-strong) !important;
+  color: var(--qpl-text-strong) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.07) !important;
+}
+
+.header-search-area .search-input,
+#reds-view input,
+#reds-view select,
+#prompt-search {
+  border-radius: var(--qpl-radius-md) !important;
+}
+
+#reds-view,
+#prompt-view,
+body.mode-links {
+  background: var(--qpl-bg);
+}
