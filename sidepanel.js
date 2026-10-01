@@ -971,12 +971,6 @@ function getProjectColor(name) {
   if (projectColors[name]) {
     return projectColors[name];
   }
-  
-  // 既存ユーザー向け：クラブ発信のデフォルトカラー強制適用
-  if (name === 'クラブ発信') {
-    return { bg: '#fef2f2', text: '#991b1b', border: '#E03E3E' };
-  }
-
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
