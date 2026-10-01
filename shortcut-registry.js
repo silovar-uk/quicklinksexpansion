@@ -1,4 +1,8 @@
 (() => {
+  'use strict';
+
+  const Contract = globalThis.QuickLinksContract
+    || (typeof require === 'function' ? require('./app-contract.js') : null);
   const LOG_VIEW_BY_NUMBER = Object.freeze({
     '1': 'all',
     '2': 'inbox',
@@ -23,6 +27,8 @@
   const registry = Object.freeze({
     legacy: Object.freeze({
       links: 'Alt+1',
+      xSearch: 'Alt+2',
+      // Compatibility alias for older callers; product vocabulary is xSearch.
       reds: 'Alt+2',
       prompts: 'Alt+3',
       clearSearch: 'Alt+4',
@@ -55,7 +61,7 @@
     return LOG_VIEW_BY_NUMBER[number] || '';
   }
 
-  const api = Object.freeze({ registry, matches, getLogView });
+  const api = Object.freeze({ registry, matches, getLogView, commands: Contract?.COMMANDS || {} });
   globalThis.QuickLinksShortcuts = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();
