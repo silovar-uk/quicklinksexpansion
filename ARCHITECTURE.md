@@ -1,232 +1,147 @@
 # Quick Project Links — Architecture
 
-Baseline: **v1.16.0**  
-Updated: **2026-08-25**
+Baseline: **v1.17.0**  
+Updated: **2026-10-01**
 
-This document describes the current runtime architecture and the boundaries that should survive future cleanup. User-visible interaction semantics are defined in `INTERACTION_CONTRACT.md`; broader behavior remains in `CURRENT_BEHAVIOR.md`.
-
-## 1. Runtime entry points
+## 1. Runtime graph
 
 ```text
 manifest.json
-│
 ├─ Service Worker
 │  └─ background-wrapper.js
+│     ├─ app-contract.js
+│     ├─ side-panel-presence-background.js
+│     ├─ ui-context-background.js
 │     ├─ shortcut-registry.js
 │     ├─ log-relay-core.js
 │     ├─ background.js
 │     ├─ search-auto-clear-background.js
 │     ├─ log-relay-background.js
 │     └─ log-relay-toggle-background.js
-│
 ├─ Content Scripts
+│  ├─ app-contract.js
 │  ├─ log-relay-content-command-guard.js
 │  ├─ shortcut-registry.js
 │  ├─ auto-project-rules.js
 │  ├─ interaction-core.js
 │  ├─ interaction-bridge.js
+│  ├─ x-search-core.js
 │  ├─ content-floating-search.js
+│  ├─ link-browsing-context-guard.js
 │  └─ log-relay-capture.js
-│
 └─ Side Panel
-   └─ sidepanel-wrapper.html
-      └─ sidepanel-wrapper.js
-         ├─ sidepanel.html / sidepanel.js
-         │  └─ quick-links-import-core.js
-         ├─ qpl-design-tokens.css
-         ├─ x-search-core.js
-         ├─ x-search-sidepanel.js
-         ├─ shortcut-registry.js
-         ├─ interaction-core.js
-         ├─ interaction-bridge.js
-         ├─ log-relay-core.js
-         ├─ log-relay-panel.js
-         ├─ log-relay-polish.js
-         └─ log-relay-toggle-panel.js
+   └─ sidepanel-wrapper.js
+      ├─ sidepanel.html / sidepanel.js
+      ├─ qpl-design-tokens.css
+      ├─ app-contract.js
+      ├─ x-search-core.js
+      ├─ x-search-sidepanel.js
+      ├─ ui-context-sidepanel.js
+      ├─ interaction-core.js
+      ├─ interaction-bridge.js
+      ├─ link-browsing-context-guard.js
+      └─ Log Relay modules
 ```
 
-`sidepanel.html` / `sidepanel.js` remain the mature core UI. `sidepanel-wrapper.js` waits for the base document initialization and then attaches focused feature modules. Do not replace that composition model casually.
+## 2. Canonical vocabulary
 
-## 2. Interaction architecture
+`app-contract.js` is the vocabulary boundary.
 
-v1.15.8 introduces a shared, intentionally small interaction layer.
+Canonical modes:
 
-### `interaction-core.js`
+- `links`
+- `x-search`
+- `prompts`
+- `log`
 
-DOM-free interaction meaning:
+The old `reds` token survives only where compatibility requires it, primarily mature DOM IDs/classes and the Chrome command ID `quick-links-open-reds`. New cross-module code must use `x-search`.
 
-- `SELECT_PRIMARY`
-- `MOVE_PRIMARY_PREV`
-- `MOVE_PRIMARY_NEXT`
-- mode -> primary-role resolution
-- keyboard-event -> action resolution
+The contract also owns message names, persistent storage keys, transient session keys and command aliases.
 
-It is CommonJS-compatible so deterministic tests exercise the exact production rules.
+## 3. Surface roles
 
-### `interaction-bridge.js`
+### Floating POP — Launcher
+Fast page-adjacent access. It owns a Shadow DOM renderer, lightweight drafts and page-context resilience. It should optimize for opening/copying, not reproduce every management control.
 
-Runtime adapter between shared intent and DOM surfaces:
+### Side Panel — Workbench
+Longer-lived management surface for Links, Prompt and X Search plus Log Relay. Mature editing/storage orchestration remains here until extracted by named responsibility.
 
-- detects Side Panel vs Floating POP;
-- resolves Links / Prompt / X Search / LOG mode;
-- maps each surface/mode to its primary DOM control;
-- owns `Alt+Q` primary focus;
-- owns `ArrowUp` / `ArrowDown` movement after a list primary target is focused;
-- injects the shared focus-visible treatment into document or Shadow DOM as needed.
+### Service Worker — State Authority
+Owns serialized mutations, atomic counters, dynamic URL resolution, tab operations, command routing and cross-surface coordination.
 
-Important: the bridge installs on `window` capture. Mature legacy shortcut handlers live on `document` capture, so the shared interaction contract becomes the effective owner without requiring a risky edit to both giant mature files in the same phase.
+## 4. Search model
 
-Legacy Alt+Q branches still exist inside the giant files as unreachable fallback for recognized modes. Remove them only in a separately characterized cleanup phase.
+Links / Prompt / X Search share `sharedSearchQuery` and revision metadata.
 
-## 3. Interaction flow
+X-specific advanced filters are local X Search state and compile through `x-search-core.js`.
 
-```text
-keyboard event
-  -> interaction-core.js (intent)
-  -> interaction-bridge.js (surface + mode)
-  -> primary DOM target
-  -> native focus / native Enter or Space behavior
-```
+Opening Side Panel from Floating POP writes a short-lived `quickLinksUiContext` object to `storage.session`, opens the panel, then restores mode/query/filter state through `QuickLinksSidepanelApi`.
 
-Examples:
+## 5. Panel presence
 
-```text
-Prompt + Alt+Q
-  -> SELECT_PRIMARY
-  -> Prompt adapter
-  -> first visible Copy button
+Current Chrome exposes `sidePanel.onOpened` and `sidePanel.onClosed`.
 
-X Search + Alt+Q
-  -> SELECT_PRIMARY
-  -> X Search adapter
-  -> current search field
+`side-panel-presence-background.js` therefore:
 
-LOG + Alt+Q
-  -> SELECT_PRIMARY
-  -> Log Relay adapter
-  -> first visible row checkbox
-```
+1. records presence in `storage.session`;
+2. broadcasts presence changes to content scripts;
+3. answers current-window presence queries.
 
-No `SELECT_PRIMARY` path may change the active mode.
+The old local-storage heartbeat remains only when native events are unavailable. It is not the normal path.
 
-## 4. Major module responsibilities
+## 6. State boundaries
 
-### Mature Quick Links UI
+Persistent user state -> `storage.local`.
 
-- `sidepanel.js` — Side Panel Links / X Search / Prompt state, rendering, editing, shared search, filters, mature event handlers and storage synchronization.
-- `content-floating-search.js` — Floating POP Links / X Search / Prompt renderer, page-context lifecycle, storage resilience and mature fallback handlers.
-- `background.js` — serialized state commits, conflict-aware merging, atomic counters, dynamic URL resolution, command routing and Side Panel presence coordination.
-- `auto-project-rules.js` — deterministic URL normalization, duplicate comparison, LINE WORKS normalization, automatic project matching and record normalization.
-- `quick-links-import-core.js` — DOM-free import parsing, duplicate keys, merge/compaction rules and project reconstruction.
+Transient runtime coordination -> `storage.session`.
 
-### Shared infrastructure
+Main Quick Links writes -> background `quickLinksCommitState` merge path.
 
-- `interaction-core.js` — interaction semantics.
-- `interaction-bridge.js` — surface adapters and keyboard focus/navigation.
-- `qpl-design-tokens.css` — shared spacing, radius, typography, focus and restrained shadow tokens.
-- `shortcut-registry.js` — canonical Log Relay shortcut matching plus existing shortcut registry/documentation responsibilities.
-- `search-auto-clear-background.js` — shared-search expiry lifecycle.
+Log Relay entry mutation -> `log-relay-background.js`.
 
-### X search
+Do not rename existing persistent keys without an explicit migration.
 
-- `x-search-core.js` owns deterministic X-search rules and URL construction.
-- `x-search-sidepanel.js` owns only Side Panel presentation additions.
-- mature Side Panel entry points continue to execute the search.
+## 7. Interaction
 
-### Log Relay
+`interaction-core.js` owns DOM-free intent.
 
-- `log-relay-core.js` — pure state/key/date helpers.
-- `log-relay-background.js` — Log Relay storage mutation owner.
-- `log-relay-capture.js` — page-side one-line capture UI.
-- `log-relay-panel.js` — LOG list/status/edit/bulk UI.
-- `log-relay-polish.js` — Log Relay visual layer.
-- `log-relay-toggle-background.js` — side-panel toggle state and `chrome.sidePanel.open/close` handling.
-- `log-relay-toggle-panel.js` — panel presence reporting and in-panel close shortcut handling.
-- `log-relay-content-command-guard.js` — prevents old content paths from double-firing the Chrome command.
+`interaction-bridge.js` resolves canonical mode + surface to actual controls.
 
-## 5. State and mutation boundaries
+`link-browsing-context-guard.js` preserves browsing/focus position for background-open link actions.
 
-Main Quick Links writes use `quickLinksCommitState` and serialized merge logic in `background.js`. Do not replace this with view-local blind `chrome.storage.local.set()` writes.
+See `INTERACTION_CONTRACT.md`.
 
-Log Relay entry mutation belongs to `log-relay-background.js`.
+## 8. Visual system
 
-Shared search remains coordinated through `sharedSearchQuery` / `sharedSearchState` revision metadata.
+`qpl-design-tokens.css` owns reusable spacing, radius, type, focus and surface tokens.
 
-Do not rename storage keys or migration markers as part of UI cleanup without an explicit migration plan.
+v1.17 treats the mode selector as one neutral workspace switch rather than four separately branded tabs. Floating POP uses the same neutral shell and remains visually lighter than the Side Panel.
 
-## 6. Chrome execution-context exception
+## 9. Release correctness
 
-Shared *meaning* does not imply one physical listener for every action.
-
-Chrome user-gesture-sensitive flows—especially `chrome.sidePanel.open()` / toggle paths—must stay in execution contexts that preserve the original eligible user gesture. Do not centralize those merely for DRYness.
-
-The safe pattern is:
-
-```text
-shared action name / contract
-  -> required Chrome execution context
-  -> context-specific effect
-```
-
-## 7. Visual system
-
-`qpl-design-tokens.css` now keeps a deliberately small vocabulary:
-
-- spacing: 4 / 8 / 12 / 16 / 24;
-- radius: 6 / 10 / 14;
-- typography: micro / meta / body / title;
-- focus: color / width / offset;
-- shadows: flat by default, floating-layer shadow separately.
-
-Cards and ordinary controls should primarily use border, spacing and typography for hierarchy. Reserve stronger shadows for true floating surfaces and modals.
-
-Keyboard focus is a first-class UI state. See `INTERACTION_CONTRACT.md`.
-
-## 8. Release architecture
-
-GitHub Actions is part of runtime correctness, not a convenience script.
-
-Pipeline:
+The GitHub Actions package workflow is part of runtime correctness:
 
 1. parse manifest;
 2. syntax-check JavaScript;
-3. validate repository manifest references;
+3. validate referenced files;
 4. run deterministic tests;
 5. build runtime-only ZIP;
 6. inspect ZIP root;
-7. extract the ZIP and re-validate the *packaged* manifest references;
-8. verify interaction runtime load order inside the packaged manifest;
-9. reject retired shim / development Markdown leakage;
-10. upload artifact and publish validated ZIP to `release/`.
+7. extract and validate packaged references/load order;
+8. upload artifact and publish validated ZIP.
 
-The packaged ZIP—not the repository tree—is the final runtime artifact.
-
-## 9. Tests
-
-Core deterministic coverage includes:
-
-- Log Relay state;
-- X-search URL rules;
-- auto-project rules;
-- storage/dynamic URL characterization;
-- import/deduplication;
-- interaction intent and cross-surface routing;
-- runtime interaction load contract.
-
-Interaction-specific tests are in:
-
-- `tests/interaction-core.test.js`
-- `tests/interaction-runtime-contract.test.js`
+The ZIP is the final runtime artifact, not the repository tree.
 
 ## 10. Refactor rule
 
-Before moving mature behavior:
+Refactor by vertical responsibility:
 
-1. identify one named responsibility;
-2. pin user-visible behavior with characterization tests;
-3. extract or reroute only that responsibility;
-4. run syntax + deterministic tests;
-5. verify packaged runtime, not only repository source;
-6. treat unexpected behavior drift as a regression.
+1. define contract;
+2. characterize behavior;
+3. extract one responsibility;
+4. wire both surfaces only where meaning is shared;
+5. run deterministic tests;
+6. verify packaged runtime;
+7. delete retired compatibility code.
 
-Prefer vertical slices such as `SELECT_PRIMARY` over a giant “clean up all shortcuts” rewrite.
+Do not split giant files merely to reduce line count.
