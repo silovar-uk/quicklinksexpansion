@@ -1,6 +1,6 @@
 # Quick Project Links — Responsibility Map
 
-Baseline: **v1.15.8**  
+Baseline: **v1.16.0**  
 Updated: **2026-08-25**
 
 This map defines current ownership boundaries. It is a change-safety guide, not a request to split every large file.
@@ -23,7 +23,7 @@ It must not know Side Panel selectors, Floating Shadow DOM selectors or Chrome A
 Owns DOM/surface adaptation for shared interaction actions:
 
 - Side Panel vs Floating POP detection;
-- Links / Prompt / REDS / LOG mode detection;
+- Links / Prompt / X Search / LOG mode detection;
 - primary target selectors;
 - `Alt+Q` focus routing;
 - `ArrowUp` / `ArrowDown` primary-list movement;
@@ -42,7 +42,7 @@ Keep these responsibilities in the mature Side Panel until a named extraction ph
 - projects, filters and project management;
 - Link rendering / CRUD;
 - Prompt rendering / CRUD and categories;
-- REDS search orchestration;
+- X search orchestration;
 - import UI orchestration;
 - help and panel heartbeat lifecycle;
 - mature event bindings not yet transferred to a shared interaction contract.
@@ -59,7 +59,7 @@ Keep these browser-context responsibilities together unless specifically charact
 - Floating renderer and draft preservation;
 - add/edit flows;
 - URL open/copy fallback behavior;
-- page-side REDS behavior;
+- page-side X search behavior;
 - mature shortcuts not yet transferred to the shared interaction layer.
 
 Do not extract broad renderer sections merely for file-size reduction.
@@ -95,11 +95,12 @@ Views should not bypass this mutation boundary with naive storage replacement.
 - duplicate merge / compaction rules;
 - project-list reconstruction.
 
-### `reds-x-search-core.js`
+### `x-search-core.js`
 
 - X account normalization;
+- advanced keyword/operator normalization;
 - date boundary conversion;
-- query construction;
+- query construction and Query Mirror summary;
 - final X URL construction.
 
 ### `log-relay-core.js`
