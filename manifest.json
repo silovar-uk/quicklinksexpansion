@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.15.10",
-  "description": "Links / REDS / Promptで共通のキーボード選択契約と、Alt+Shift+MによるLog Relay開閉に対応",
+  "version": "1.16.0",
+  "description": "Links / X検索 / Promptを共通のキーボード操作で扱い、Alt+Shift+MでLog Relayを開閉",
   "permissions": [
     "sidePanel",
     "storage",
@@ -14,17 +14,17 @@
   ],
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
-    "128": "icons/icon128.png",
-    "32": "icons/icon32.png"
+    "128": "icons/icon128.png"
   },
   "action": {
     "default_title": "Quick Links",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
-      "128": "icons/icon128.png",
-      "32": "icons/icon32.png"
+      "128": "icons/icon128.png"
     }
   },
   "background": {
@@ -49,6 +49,7 @@
         "auto-project-rules.js",
         "interaction-core.js",
         "interaction-bridge.js",
+        "x-search-core.js",
         "content-floating-search.js",
         "link-browsing-context-guard.js",
         "log-relay-capture.js"
@@ -67,7 +68,7 @@
       "suggested_key": {
         "default": "Alt+2"
       },
-      "description": "右下POPをRedsタブで開く"
+      "description": "右下POPをX検索タブで開く"
     },
     "quick-links-open-prompts": {
       "suggested_key": {
