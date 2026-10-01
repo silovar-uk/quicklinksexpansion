@@ -30,6 +30,7 @@
     OPEN_SIDE_PANEL: 'quickLinksOpenSidePanel',
     GET_CURRENT_WINDOW_ID: 'quickLinksGetCurrentWindowId',
     GET_SIDE_PANEL_STATE: 'quickLinksGetSidePanelWindowState',
+    SIDE_PANEL_PRESENCE_CHANGED: 'quickLinksSidePanelPresenceChanged',
     LEGACY_SIDE_PANEL_HEARTBEAT: 'quickLinksSidePanelHeartbeat',
     SIDEPANEL_SHORTCUT: 'quickLinksSidepanelShortcut',
     FLOATING_SHORTCUT: 'quickLinksFloatingShortcut',
