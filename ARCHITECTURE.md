@@ -1,6 +1,6 @@
 # Quick Project Links — Architecture
 
-Baseline: **v1.15.8**  
+Baseline: **v1.16.0**  
 Updated: **2026-08-25**
 
 This document describes the current runtime architecture and the boundaries that should survive future cleanup. User-visible interaction semantics are defined in `INTERACTION_CONTRACT.md`; broader behavior remains in `CURRENT_BEHAVIOR.md`.
@@ -34,8 +34,8 @@ manifest.json
          ├─ sidepanel.html / sidepanel.js
          │  └─ quick-links-import-core.js
          ├─ qpl-design-tokens.css
-         ├─ reds-x-search-core.js
-         ├─ reds-x-search-polish.js
+         ├─ x-search-core.js
+         ├─ x-search-sidepanel.js
          ├─ shortcut-registry.js
          ├─ interaction-core.js
          ├─ interaction-bridge.js
@@ -68,7 +68,7 @@ It is CommonJS-compatible so deterministic tests exercise the exact production r
 Runtime adapter between shared intent and DOM surfaces:
 
 - detects Side Panel vs Floating POP;
-- resolves Links / Prompt / REDS / LOG mode;
+- resolves Links / Prompt / X Search / LOG mode;
 - maps each surface/mode to its primary DOM control;
 - owns `Alt+Q` primary focus;
 - owns `ArrowUp` / `ArrowDown` movement after a list primary target is focused;
@@ -96,9 +96,9 @@ Prompt + Alt+Q
   -> Prompt adapter
   -> first visible Copy button
 
-REDS + Alt+Q
+X Search + Alt+Q
   -> SELECT_PRIMARY
-  -> REDS adapter
+  -> X Search adapter
   -> current search field
 
 LOG + Alt+Q
@@ -113,8 +113,8 @@ No `SELECT_PRIMARY` path may change the active mode.
 
 ### Mature Quick Links UI
 
-- `sidepanel.js` — Side Panel Links / REDS / Prompt state, rendering, editing, shared search, filters, mature event handlers and storage synchronization.
-- `content-floating-search.js` — Floating POP Links / REDS / Prompt renderer, page-context lifecycle, storage resilience and mature fallback handlers.
+- `sidepanel.js` — Side Panel Links / X Search / Prompt state, rendering, editing, shared search, filters, mature event handlers and storage synchronization.
+- `content-floating-search.js` — Floating POP Links / X Search / Prompt renderer, page-context lifecycle, storage resilience and mature fallback handlers.
 - `background.js` — serialized state commits, conflict-aware merging, atomic counters, dynamic URL resolution, command routing and Side Panel presence coordination.
 - `auto-project-rules.js` — deterministic URL normalization, duplicate comparison, LINE WORKS normalization, automatic project matching and record normalization.
 - `quick-links-import-core.js` — DOM-free import parsing, duplicate keys, merge/compaction rules and project reconstruction.
@@ -127,10 +127,10 @@ No `SELECT_PRIMARY` path may change the active mode.
 - `shortcut-registry.js` — canonical Log Relay shortcut matching plus existing shortcut registry/documentation responsibilities.
 - `search-auto-clear-background.js` — shared-search expiry lifecycle.
 
-### REDS / X search
+### X search
 
-- `reds-x-search-core.js` owns deterministic X-search rules and URL construction.
-- `reds-x-search-polish.js` owns only Side Panel presentation additions.
+- `x-search-core.js` owns deterministic X-search rules and URL construction.
+- `x-search-sidepanel.js` owns only Side Panel presentation additions.
 - mature Side Panel entry points continue to execute the search.
 
 ### Log Relay
@@ -206,7 +206,7 @@ The packaged ZIP—not the repository tree—is the final runtime artifact.
 Core deterministic coverage includes:
 
 - Log Relay state;
-- REDS/X URL rules;
+- X-search URL rules;
 - auto-project rules;
 - storage/dynamic URL characterization;
 - import/deduplication;

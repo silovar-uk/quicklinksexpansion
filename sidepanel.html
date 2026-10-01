@@ -1182,7 +1182,7 @@
     #prompt-body-edit { min-height:180px; font-family:inherit; }
     .prompt-char-count { text-align:right; color:#64748b; font-size:11px; margin-top:-4px; }
 
-    /* Reds検索 */
+    /* X検索（内部互換IDは既存UI契約を維持） */
     #reds-view {
       flex: 1;
       overflow-y: auto;
@@ -2562,7 +2562,7 @@
 
   <div class="app-mode-tabs">
     <button id="mode-links" class="app-mode-btn links has-shortcut active" title="Links（Alt+1）"><span class="app-mode-title">🔗 Links</span><kbd class="app-mode-shortcut">Alt+1</kbd></button>
-    <button id="mode-reds" class="app-mode-btn reds has-shortcut" title="REDS（Alt+2）"><span class="app-mode-title">⚽ REDS</span><kbd class="app-mode-shortcut">Alt+2</kbd></button>
+    <button id="mode-reds" class="app-mode-btn reds has-shortcut" title="X検索（Alt+2）"><span class="app-mode-title">𝕏 X検索</span><kbd class="app-mode-shortcut">Alt+2</kbd></button>
     <button id="mode-prompts" class="app-mode-btn prompts has-shortcut" title="Prompt（Alt+3）"><span class="app-mode-title">📝 Prompt</span><kbd class="app-mode-shortcut">Alt+3</kbd></button>
   </div>
 
@@ -2723,7 +2723,7 @@
         <section class="help-guide-section">
           <h3>1. まず開く</h3>
           <div class="help-guide-row"><kbd>Alt + 1</kbd><span>Linksを開く。よく使うリンクを検索・表示します。</span></div>
-          <div class="help-guide-row"><kbd>Alt + 2</kbd><span>REDSを開く。サイト内検索や公式X検索を使います。</span></div>
+          <div class="help-guide-row"><kbd>Alt + 2</kbd><span>X検索を開く。検索語や条件を組み合わせてXを検索します。</span></div>
           <div class="help-guide-row"><kbd>Alt + 3</kbd><span>Promptを開く。保存したプロンプトを検索・コピーします。</span></div>
         </section>
 
@@ -2744,10 +2744,10 @@
         </section>
 
         <section class="help-guide-section">
-          <h3>4. REDS検索</h3>
-          <div class="help-guide-row"><kbd>Alt + S</kbd><span>入力した語で浦和レッズ公式サイトを検索します。</span></div>
-          <div class="help-guide-row"><kbd>Alt + X</kbd><span>入力した語で浦和レッズ公式Xを検索します。</span></div>
-          <div class="help-guide-row"><span class="help-mouse-label">日付ボタン</span><span>今日・昨日・1週間など、検索期間をすばやく指定できます。</span></div>
+          <h3>4. X検索</h3>
+          <div class="help-guide-row"><kbd>Alt + X</kbd><span>現在の検索条件でXを検索します。</span></div>
+          <div class="help-guide-row"><span class="help-mouse-label">詳しく絞る</span><span>完全一致・除外語・アカウント・期間・言語を必要なときだけ追加できます。</span></div>
+          <div class="help-guide-row"><span class="help-mouse-label">検索ミラー</span><span>実行前に、検索意図と生成されたX検索式を確認できます。</span></div>
         </section>
 
         <section class="help-guide-section">
@@ -2817,31 +2817,71 @@
 
   <div id="reds-view">
     <div class="reds-tools-card">
-      <div class="reds-tools-title">⚽ Reds検索</div>
+      <div class="reds-tools-title">𝕏 X検索</div>
       <div class="reds-search-row">
-        <input type="text" id="reds-search" placeholder="例：チケット、試合結果、移籍">
+        <input type="search" id="reds-search" placeholder="Xで調べたい言葉を入力" autocomplete="off" enterkeyhint="search" aria-label="X検索">
       </div>
-      <div class="reds-quick-row">
-        <button class="reds-quick-btn" data-reds-range="today">今日</button>
-        <button class="reds-quick-btn" data-reds-range="yesterday">昨日</button>
-        <button class="reds-quick-btn" data-reds-range="week">1週間</button>
-        <button class="reds-quick-btn" data-reds-range="month">1ヶ月前〜</button>
-        <button class="reds-quick-btn" data-reds-range="year">1年以内</button>
-        <button class="reds-quick-btn" data-reds-range="older">1年前以前</button>
+
+      <details id="x-search-advanced" class="x-search-disclosure">
+        <summary>
+          <span>詳しく絞る</span>
+          <span id="x-search-filter-count" class="x-search-filter-count" hidden></span>
+        </summary>
+        <div class="x-search-advanced-body">
+          <div class="x-search-group">
+            <div class="x-search-group-title">何を探す？</div>
+            <div class="x-search-field-grid">
+              <input class="x-search-field wide" id="x-search-exact" type="text" placeholder="完全一致するフレーズ">
+              <input class="x-search-field wide" id="x-search-any" type="text" placeholder="いずれかを含む語（空白区切り）">
+              <input class="x-search-field wide" id="x-search-exclude" type="text" placeholder="除外する語（空白区切り）">
+              <input class="x-search-field wide" id="x-search-hashtags" type="text" placeholder="ハッシュタグ（#なしでも可）">
+            </div>
+          </div>
+
+          <div class="x-search-group">
+            <div class="x-search-group-title">誰の投稿？</div>
+            <div class="x-search-field-grid">
+              <input class="x-search-field" id="x-search-from" type="text" placeholder="投稿者 @account">
+              <input class="x-search-field" id="x-search-to" type="text" placeholder="宛先 @account">
+              <input class="x-search-field wide" id="x-search-mentions" type="text" placeholder="言及するアカウント">
+            </div>
+          </div>
+
+          <div class="x-search-group">
+            <div class="x-search-group-title">いつ？</div>
+            <div class="reds-date-grid">
+              <input type="date" id="reds-date-start" aria-label="開始日">
+              <span style="font-size:11px;color:#64748b;font-weight:800;">〜</span>
+              <input type="date" id="reds-date-end" aria-label="終了日">
+            </div>
+          </div>
+
+          <div class="x-search-group">
+            <div class="x-search-group-title">その他</div>
+            <select class="x-search-field" id="x-search-language" aria-label="言語">
+              <option value="">言語指定なし</option>
+              <option value="ja">日本語</option>
+              <option value="en">英語</option>
+            </select>
+          </div>
+
+          <button id="x-search-clear-advanced" class="x-search-clear-advanced" type="button">詳細条件をすべて解除</button>
+        </div>
+      </details>
+
+      <div class="x-search-mirror" aria-live="polite">
+        <div class="x-search-mirror-label">検索ミラー</div>
+        <div id="x-search-summary">検索条件を入力すると、ここに検索意図が表示されます。</div>
+        <details class="x-search-query-details">
+          <summary>Xの検索式を見る</summary>
+          <code id="x-search-query-preview">—</code>
+        </details>
       </div>
-      <div class="reds-date-grid">
-        <input type="date" id="reds-date-start">
-        <span style="font-size:11px;color:#991b1b;font-weight:800;">〜</span>
-        <input type="date" id="reds-date-end">
+
+      <div class="reds-action-row" style="grid-template-columns:1fr;">
+        <button id="reds-x" class="reds-action-btn x has-shortcut" title="X検索（Alt+X）"><span>𝕏 Xで検索</span><kbd class="action-shortcut">Alt+X</kbd></button>
       </div>
-      <div class="reds-action-row">
-        <button id="reds-google" class="reds-action-btn google has-shortcut" title="サイト検索（Alt+S）"><span>🌐 サイト内</span><kbd class="action-shortcut">Alt+S</kbd></button>
-        <button id="reds-x" class="reds-action-btn x has-shortcut" title="X検索（Alt+X）"><span>𝕏 公式X</span><kbd class="action-shortcut">Alt+X</kbd></button>
-      </div>
-      <div class="reds-quick-row">
-        <button id="reds-date-clear" class="reds-quick-btn">日付クリア</button>
-      </div>
-      <div class="reds-note">入力した検索語は、Links / Prompt / Reds / 右下ポップと共通で保持されます。</div>
+      <div class="reds-note">検索語は Links / Prompt / X検索 / 右下ポップと共通。詳細条件はX検索だけに適用されます。</div>
     </div>
   </div>
 

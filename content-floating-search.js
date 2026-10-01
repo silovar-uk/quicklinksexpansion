@@ -50,6 +50,16 @@
   let redsQuery = '';
   let redsDateStart = '';
   let redsDateEnd = '';
+  let xAdvanced = {
+    exactPhrase: '',
+    anyWords: '',
+    excludeWords: '',
+    hashtags: '',
+    fromAccount: '',
+    toAccount: '',
+    mentions: '',
+    language: ''
+  };
   let host = null;
   let shadow = null;
   let shortcutScopeActive = false;
@@ -640,18 +650,18 @@
       && (event.code === code || String(event.key || '').toLowerCase() === key);
   }
 
-  async function routeRedsSearchToSidepanelOrFallback(searchType) {
+  async function routeRedsSearchToSidepanelOrFallback() {
     try {
       const response = await sendRuntimeMessage({
         type: 'quickLinksSidepanelShortcut',
-        action: searchType === 'x' ? 'search-x' : 'search-site',
+        action: 'search-x',
         windowId: currentWindowId
       });
       if (response?.ok) return true;
     } catch (_) {}
 
-    // サイドパネルの状態判定が古い場合でも、ショートカットを無反応にしない。
-    return runFloatingRedsSearchShortcut(searchType);
+    // サイドパネルの状態判定が古い場合でも、X検索ショートカットを無反応にしない。
+    return runFloatingRedsSearchShortcut();
   }
 
   function handleFloatingKeyboardShortcut(event) {
@@ -682,7 +692,6 @@
 
     // サイドパネル表示中にページ側へフォーカスがあっても、検索ショートカットをパネルへ渡す。
     if (isSidePanelEffectivelyOpen()) {
-      const isSiteShortcut = isPlainAltLetterShortcut(event, 'KeyS', 's');
       const isXShortcut = isPlainAltLetterShortcut(event, 'KeyX', 'x');
       const isSortShortcut = isPlainAltLetterShortcut(event, 'KeyO', 'o');
       const isProjectFilterShortcut = isPlainAltLetterShortcut(event, 'KeyF', 'f');
@@ -691,12 +700,12 @@
         && !event.metaKey
         && !event.shiftKey
         && (event.code === 'Digit4' || event.code === 'Numpad4' || String(event.key || '') === '4');
-      if ((isSiteShortcut || isXShortcut || isSortShortcut || isProjectFilterShortcut || isClearShortcut) && !event.repeat) {
+      if ((isXShortcut || isSortShortcut || isProjectFilterShortcut || isClearShortcut) && !event.repeat) {
         consumeFloatingShortcut(event);
         if (isClearShortcut) routeClearSearchToSidepanelOrFallback();
         else if (isProjectFilterShortcut) routeSearchProjectFilterToSidepanelOrFallback();
         else if (isSortShortcut) routeSortToSidepanelOrFallback();
-        else routeRedsSearchToSidepanelOrFallback(isXShortcut ? 'x' : 'site');
+        else routeRedsSearchToSidepanelOrFallback();
       }
       return;
     }
@@ -864,17 +873,14 @@
     window.setTimeout(() => shadow?.getElementById(focusId)?.focus(), 0);
   }
 
-  function runFloatingRedsSearchShortcut(searchType) {
+  function runFloatingRedsSearchShortcut() {
     clearFloatingOverlays();
     userDismissed = false;
     mode = 'panel';
     activeTab = 'reds';
     shortcutScopeActive = true;
     render();
-    window.setTimeout(() => {
-      if (searchType === 'x') runRedsXSearch();
-      else runRedsGoogleSearch();
-    }, 0);
+    window.setTimeout(() => runRedsXSearch(), 0);
     return true;
   }
 
@@ -1466,9 +1472,9 @@
           color: #1d4ed8;
         }
         .ql-tab-btn#ql-tab-reds {
-          background: #fee2e2;
-          border-color: #fca5a5;
-          color: #b91c1c;
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          color: #111827;
         }
         .ql-tab-btn#ql-tab-prompts {
           background: #fef3c7;
@@ -1482,10 +1488,10 @@
           box-shadow: 0 3px 10px rgba(37, 99, 235, 0.22);
         }
         .ql-tab-btn.active-reds {
-          background: #dc2626 !important;
-          border-color: #b91c1c !important;
+          background: #111827 !important;
+          border-color: #111827 !important;
           color: white !important;
-          box-shadow: 0 3px 10px rgba(220, 38, 38, 0.22);
+          box-shadow: 0 3px 10px rgba(17, 24, 39, 0.18);
         }
         .ql-tab-btn.active-prompts {
           background: #d97706 !important;
@@ -1505,7 +1511,7 @@
         .ql-date-input { padding: 9px 10px; }
         .ql-search:hover, .ql-reds-input:hover { background: #fff; border-color:#cbd5e1; }
         .ql-search:focus, .ql-reds-input:focus, .ql-date-input:focus {
-          background:#fff; border-color: #e06464; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.11), 0 7px 16px rgba(15,23,42,.06);
+          background:#fff; border-color: #111827; box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08), 0 7px 16px rgba(15,23,42,.06);
         }
         .ql-clear {
           position: absolute; top: 50%; right: 58px; transform: translateY(-50%);
@@ -2263,7 +2269,7 @@
             <div class="ql-body">
               <div class="ql-tabs">
                 <button class="ql-tab-btn ${activeTab === 'links' ? 'active-links' : ''}" id="ql-tab-links" title="Quick Links（Alt+1）"><span class="ql-tab-label">🔗 Links</span><kbd class="ql-key">Alt+1</kbd></button>
-                <button class="ql-tab-btn ${activeTab === 'reds' ? 'active-reds' : ''}" id="ql-tab-reds" title="REDS Search（Alt+2）"><span class="ql-tab-label">⚽ REDS</span><kbd class="ql-key">Alt+2</kbd></button>
+                <button class="ql-tab-btn ${activeTab === 'reds' ? 'active-reds' : ''}" id="ql-tab-reds" title="X検索（Alt+2）"><span class="ql-tab-label">𝕏 X検索</span><kbd class="ql-key">Alt+2</kbd></button>
                 <button class="ql-tab-btn ${activeTab === 'prompts' ? 'active-prompts' : ''}" id="ql-tab-prompts" title="Prompt Memo（Alt+3）"><span class="ql-tab-label">📝 Prompt</span><kbd class="ql-key">Alt+3</kbd></button>
               </div>
               <div class="ql-pane ${activeTab === 'links' ? 'active' : ''}" id="ql-pane-links">
@@ -2297,29 +2303,45 @@
               </div>
               <div class="ql-pane ${activeTab === 'reds' ? 'active' : ''}" id="ql-pane-reds">
                 <div class="ql-search-row">
-                  <input class="ql-reds-input" id="ql-reds-query" type="text" placeholder="例：チケット、試合結果、移籍" value="${escapeHtml(redsQuery)}">
+                  <input class="ql-reds-input" id="ql-reds-query" type="search" placeholder="Xで調べたい言葉を入力" value="${escapeHtml(redsQuery)}" autocomplete="off" enterkeyhint="search">
                   <button class="ql-clear" id="ql-clear-reds-search" title="検索をクリア" aria-label="検索をクリア" style="display:${redsQuery ? 'inline-flex' : 'none'}"><span aria-hidden="true">×</span></button>
                   <kbd class="ql-search-key" title="検索をクリア／検索欄へ移動">Alt+4</kbd>
                 </div>
-                <div class="ql-quick-date-row">
-                  <button class="ql-quick-date-btn" data-reds-range="today">今日</button>
-                  <button class="ql-quick-date-btn" data-reds-range="yesterday">昨日</button>
-                  <button class="ql-quick-date-btn" data-reds-range="week">1週間</button>
-                  <button class="ql-quick-date-btn" data-reds-range="month">1ヶ月前〜</button>
-                  <button class="ql-quick-date-btn" data-reds-range="year">1年以内</button>
-                  <button class="ql-quick-date-btn" data-reds-range="older">1年前以前</button>
+                <details id="ql-x-advanced" style="border:1px solid #e2e8f0;border-radius:10px;background:#fff;margin-bottom:8px;">
+                  <summary style="cursor:pointer;padding:8px 10px;font-size:11px;font-weight:800;color:#334155;list-style:none;">詳しく絞る <span id="ql-x-filter-count" style="margin-left:4px;font-size:9px;color:#fff;background:#111827;border-radius:999px;padding:2px 5px;${globalThis.QuickLinksXSearchCore?.getActiveFilterCount?.({ ...xAdvanced, start: redsDateStart, end: redsDateEnd }) ? '' : 'display:none;'}"></span></summary>
+                  <div style="border-top:1px solid #e2e8f0;padding:9px;display:grid;gap:6px;">
+                    <input class="ql-date-input" id="ql-x-exact" type="text" placeholder="完全一致するフレーズ" value="${escapeHtml(xAdvanced.exactPhrase)}">
+                    <input class="ql-date-input" id="ql-x-any" type="text" placeholder="いずれかを含む語" value="${escapeHtml(xAdvanced.anyWords)}">
+                    <input class="ql-date-input" id="ql-x-exclude" type="text" placeholder="除外する語" value="${escapeHtml(xAdvanced.excludeWords)}">
+                    <input class="ql-date-input" id="ql-x-hashtags" type="text" placeholder="ハッシュタグ" value="${escapeHtml(xAdvanced.hashtags)}">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                      <input class="ql-date-input" id="ql-x-from" type="text" placeholder="投稿者 @account" value="${escapeHtml(xAdvanced.fromAccount)}">
+                      <input class="ql-date-input" id="ql-x-to" type="text" placeholder="宛先 @account" value="${escapeHtml(xAdvanced.toAccount)}">
+                    </div>
+                    <input class="ql-date-input" id="ql-x-mentions" type="text" placeholder="言及するアカウント" value="${escapeHtml(xAdvanced.mentions)}">
+                    <select class="ql-date-input" id="ql-x-language" aria-label="言語">
+                      <option value="" ${!xAdvanced.language ? 'selected' : ''}>言語指定なし</option>
+                      <option value="ja" ${xAdvanced.language === 'ja' ? 'selected' : ''}>日本語</option>
+                      <option value="en" ${xAdvanced.language === 'en' ? 'selected' : ''}>英語</option>
+                    </select>
+                    <div class="ql-date-row">
+                      <input class="ql-date-input" id="ql-reds-date-start" type="date" value="${escapeHtml(redsDateStart)}">
+                      <div class="ql-date-sep">〜</div>
+                      <input class="ql-date-input" id="ql-reds-date-end" type="date" value="${escapeHtml(redsDateEnd)}">
+                    </div>
+                    <button class="ql-quick-date-btn" id="ql-x-clear-advanced" type="button" style="justify-self:start;">詳細条件を解除</button>
+                  </div>
+                </details>
+                <div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:8px 9px;margin-bottom:8px;">
+                  <div style="font-size:9px;font-weight:900;color:#64748b;margin-bottom:3px;">検索ミラー</div>
+                  <div id="ql-x-summary" style="font-size:10px;line-height:1.5;color:#0f172a;"></div>
+                  <details style="margin-top:5px;">
+                    <summary style="cursor:pointer;font-size:9px;font-weight:800;color:#64748b;">Xの検索式を見る</summary>
+                    <code id="ql-x-query-preview" style="display:block;margin-top:4px;padding:6px 7px;border-radius:7px;background:#0f172a;color:#e2e8f0;font-size:8px;line-height:1.4;white-space:pre-wrap;word-break:break-word;"></code>
+                  </details>
                 </div>
-                <div class="ql-date-row">
-                  <input class="ql-date-input" id="ql-reds-date-start" type="date" value="${escapeHtml(redsDateStart)}">
-                  <div class="ql-date-sep">〜</div>
-                  <input class="ql-date-input" id="ql-reds-date-end" type="date" value="${escapeHtml(redsDateEnd)}">
-                </div>
-                <div class="ql-reds-actions">
-                  <button class="ql-reds-btn primary ql-with-shortcut" id="ql-reds-google" title="サイト検索（Alt+S）"><span>🌐 サイト内</span><kbd class="ql-key">Alt+S</kbd></button>
-                  <button class="ql-reds-btn secondary ql-with-shortcut" id="ql-reds-x" title="X検索（Alt+X）"><span>𝕏 公式X</span><kbd class="ql-key">Alt+X</kbd></button>
-                </div>
-                <div class="ql-quick-date-row" style="margin-top:8px;">
-                  <button class="ql-quick-date-btn" id="ql-reds-date-clear">クリア</button>
+                <div class="ql-reds-actions" style="grid-template-columns:1fr;">
+                  <button class="ql-reds-btn secondary ql-with-shortcut" id="ql-reds-x" title="X検索（Alt+X）"><span>𝕏 Xで検索</span><kbd class="ql-key">Alt+X</kbd></button>
                 </div>
               </div>
               <div class="ql-pane ${activeTab === 'prompts' ? 'active' : ''}" id="ql-pane-prompts">
@@ -2410,15 +2432,16 @@
       bindPanelListEvents();
     } else if (activeTab === 'reds') {
       const redsSearchInput = shadow.getElementById('ql-reds-query');
-      bindSharedSearchComposition(redsSearchInput);
+      bindSharedSearchComposition(redsSearchInput, updateFloatingXMirror);
       redsSearchInput?.addEventListener('input', (e) => {
         if (shouldIgnoreSharedSearchInputEvent(e)) return;
         applySharedSearchQuery(e.target.value || '');
+        updateFloatingXMirror();
       });
-      shadow.getElementById('ql-reds-query')?.addEventListener('keydown', (e) => {
+      redsSearchInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          runRedsGoogleSearch();
+          runRedsXSearch();
         } else if (e.key === 'Escape' && e.altKey) {
           collapseFloatingPanel();
         }
@@ -2428,22 +2451,42 @@
         render();
         setTimeout(() => shadow.getElementById('ql-reds-query')?.focus(), 0);
       });
+      const advancedBindings = [
+        ['ql-x-exact', 'exactPhrase'],
+        ['ql-x-any', 'anyWords'],
+        ['ql-x-exclude', 'excludeWords'],
+        ['ql-x-hashtags', 'hashtags'],
+        ['ql-x-from', 'fromAccount'],
+        ['ql-x-to', 'toAccount'],
+        ['ql-x-mentions', 'mentions'],
+        ['ql-x-language', 'language']
+      ];
+      advancedBindings.forEach(([id, key]) => {
+        const el = shadow.getElementById(id);
+        const update = (e) => {
+          xAdvanced[key] = e.target.value || '';
+          updateFloatingXMirror();
+        };
+        el?.addEventListener('input', update);
+        el?.addEventListener('change', update);
+      });
       shadow.getElementById('ql-reds-date-start')?.addEventListener('input', (e) => {
         redsDateStart = e.target.value || '';
+        updateFloatingXMirror();
       });
       shadow.getElementById('ql-reds-date-end')?.addEventListener('input', (e) => {
         redsDateEnd = e.target.value || '';
+        updateFloatingXMirror();
       });
-      shadow.querySelectorAll('[data-reds-range]').forEach(btn => {
-        btn.addEventListener('click', () => applyRedsQuickDate(btn.getAttribute('data-reds-range')));
-      });
-      shadow.getElementById('ql-reds-date-clear')?.addEventListener('click', () => {
+      shadow.getElementById('ql-x-clear-advanced')?.addEventListener('click', () => {
+        xAdvanced = { exactPhrase:'', anyWords:'', excludeWords:'', hashtags:'', fromAccount:'', toAccount:'', mentions:'', language:'' };
         redsDateStart = '';
         redsDateEnd = '';
         render();
+        setTimeout(() => shadow.getElementById('ql-reds-query')?.focus(), 0);
       });
-      shadow.getElementById('ql-reds-google')?.addEventListener('click', runRedsGoogleSearch);
       shadow.getElementById('ql-reds-x')?.addEventListener('click', runRedsXSearch);
+      updateFloatingXMirror();
     } else if (activeTab === 'prompts') {
       bindPromptMemoEvents();
     }
@@ -3950,31 +3993,47 @@
     return formatDateInputValue(date);
   }
 
-  function buildRedsGoogleUrl() {
-    const query = String(redsQuery || '').trim();
-    if (!query) return '';
-    let fullQuery = `${query} site:urawa-reds.co.jp`;
-    if (redsDateStart) fullQuery += ` after:${redsDateStart}`;
-    if (redsDateEnd) fullQuery += ` before:${addDaysToDateInput(redsDateEnd, 1)}`;
-    return `https://www.google.com/search?q=${encodeURIComponent(fullQuery)}`;
+  function collectFloatingXInput() {
+    return {
+      allWords: redsQuery,
+      exactPhrase: xAdvanced.exactPhrase,
+      anyWords: xAdvanced.anyWords,
+      excludeWords: xAdvanced.excludeWords,
+      hashtags: xAdvanced.hashtags,
+      fromAccount: xAdvanced.fromAccount,
+      toAccount: xAdvanced.toAccount,
+      mentions: xAdvanced.mentions,
+      language: xAdvanced.language,
+      start: redsDateStart,
+      end: redsDateEnd
+    };
+  }
+
+  function updateFloatingXMirror() {
+    const Core = globalThis.QuickLinksXSearchCore;
+    if (!Core || !shadow) return;
+    const input = collectFloatingXInput();
+    const summary = shadow.getElementById('ql-x-summary');
+    const preview = shadow.getElementById('ql-x-query-preview');
+    const count = shadow.getElementById('ql-x-filter-count');
+    const button = shadow.getElementById('ql-reds-x');
+    const query = Core.buildXSearchQuery(input);
+    if (summary) summary.textContent = Core.buildSummary(input);
+    if (preview) preview.textContent = query || '—';
+    const n = Core.getActiveFilterCount(input);
+    if (count) {
+      count.textContent = n ? String(n) : '';
+      count.style.display = n ? 'inline' : 'none';
+    }
+    if (button) {
+      button.disabled = !query;
+      button.setAttribute('aria-disabled', query ? 'false' : 'true');
+    }
   }
 
   function buildRedsXUrl() {
-    const query = String(redsQuery || '').trim();
-    if (!query) return '';
-    let xQuery = `${query} from:REDSOFFICIAL`;
-    if (redsDateStart) xQuery += ` since:${redsDateStart}`;
-    if (redsDateEnd) xQuery += ` until:${addDaysToDateInput(redsDateEnd, 1)}`;
-    return `https://x.com/search?q=${encodeURIComponent(xQuery)}&f=live`;
-  }
-
-  function runRedsGoogleSearch() {
-    const url = buildRedsGoogleUrl();
-    if (!url) {
-      shadow.getElementById('ql-reds-query')?.focus();
-      return;
-    }
-    openUrlInTab(url);
+    const Core = globalThis.QuickLinksXSearchCore;
+    return Core?.buildXSearchUrl ? Core.buildXSearchUrl(collectFloatingXInput()) : '';
   }
 
   function runRedsXSearch() {
@@ -3985,6 +4044,7 @@
     }
     openUrlInTab(url, { active: true });
   }
+
   // Chromeの拡張機能ショートカットから届く命令を受け取る。
   // これにより、ページ内でPOPを操作していない状態や、POPが完全非表示でも再表示できる。
   const runtimeForMessages = getChromeRuntime();
