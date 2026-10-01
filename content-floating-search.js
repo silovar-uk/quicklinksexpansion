@@ -2304,6 +2304,41 @@
           box-shadow: 0 10px 22px rgba(15,23,42,.26);
         }
 
+
+        /* v1.17 final cascade: neutral shell + one consistent active state. */
+        .ql-launcher .ql-icon-btn,
+        .ql-launcher .ql-icon-btn:hover,
+        .ql-launcher .ql-icon-btn:focus-visible {
+          background: #111827;
+        }
+        .ql-panel { background:#f8fafc; border-color:#dbe3ec; }
+        .ql-header,
+        .ql-modal-header,
+        .ql-edit-header { background:#111827; background-image:none; }
+        .ql-body { background:#f8fafc; }
+        .ql-tabs { gap:4px; padding:4px; background:#eef2f6; border:1px solid #dbe3ec; border-radius:12px; }
+        .ql-tab-btn#ql-tab-links,
+        .ql-tab-btn#ql-tab-reds,
+        .ql-tab-btn#ql-tab-prompts {
+          background:transparent;
+          border-color:transparent;
+          color:#64748b;
+        }
+        .ql-tab-btn.active-links,
+        .ql-tab-btn.active-reds,
+        .ql-tab-btn.active-prompts {
+          background:#fff!important;
+          border-color:#cbd5e1!important;
+          color:#0f172a!important;
+          box-shadow:0 1px 2px rgba(15,23,42,.07)!important;
+        }
+        .ql-tab-btn.active-links .ql-key,
+        .ql-tab-btn.active-reds .ql-key,
+        .ql-tab-btn.active-prompts .ql-key {
+          background:#f8fafc;
+          color:#64748b;
+          border-color:#cbd5e1;
+        }
       </style>
       <div class="ql-wrap">
         ${floatingNotice && !addDraft && !promptDraft && !editingItem ? `<div class="ql-toast ${floatingNotice.type === 'warning' ? 'warning' : (floatingNotice.type === 'success' ? 'success' : '')}" role="status" aria-live="polite">${escapeHtml(floatingNotice.message)}</div>` : ''}
