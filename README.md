@@ -1,6 +1,6 @@
 # Quick Project Links v1.15.6
 
-Quick Project Links is a personal Chrome extension for getting back to frequently used work links, REDS searches, prompts and short Log Relay notes with as little friction as possible.
+Quick Project Links is a personal Chrome extension for getting back to frequently used work links, X searches, prompts and short Log Relay notes with as little friction as possible.
 
 The product is intentionally deterministic. It is not an AI assistant.
 
@@ -15,14 +15,13 @@ The product is intentionally deterministic. It is not an AI assistant.
 - Duplicate handling, including LINE WORKS channel IDs.
 - Built-in dynamic Backlog links that resolve date ranges when opened.
 
-### REDS
+### X Search
 
-- Shared REDS search UI for web/X workflows.
-- X account defaults to `REDSOFFICIAL` but is editable.
-- Keyword + account searches with `from:account`.
-- Account-only search works when the keyword is blank.
-- `@handle`, `x.com/handle` and `twitter.com/handle` inputs are normalized.
-- Start/end date conditions are supported.
+- Plain keyword search by default.
+- Optional advanced filters for exact phrases, OR terms, exclusions, hashtags, accounts, language and date ranges.
+- No club-specific keyword or account defaults.
+- Query Mirror previews both the human-readable intent and generated X query before opening X.
+- The main keyword remains shared with Links / Prompt / the Floating POP.
 
 ### Prompt
 
@@ -43,7 +42,7 @@ Principle: **capture now, organize later**.
 ## Main shortcuts
 
 - `Alt + 1` — Links
-- `Alt + 2` — REDS
+- `Alt + 2` — X Search
 - `Alt + 3` — Prompt
 - `Alt + M` — add a Log Relay memo
 - `Alt + Shift + M` — toggle Log Relay side panel
@@ -92,7 +91,7 @@ Current test areas include:
 
 - Log Relay state transitions and 24h trash boundary
 - Log Relay shortcut matching
-- REDS/X account normalization and query generation
+- X search normalization, advanced query generation and Query Mirror
 - LINE WORKS URL/channel canonicalization
 - Backlog dynamic URL resolution using JST calendar boundaries
 - storage conflict/merge behavior
@@ -126,7 +125,7 @@ Current cleanup sequence:
 
 ## Current baseline
 
-Version: **1.15.6**  
+Version: **1.16.0**  
 Behavior baseline date: **2026-08-22**
 
 Historical implementation details remain available in Git history. README now describes the current product rather than acting as a chronological release log.
