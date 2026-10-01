@@ -21,6 +21,8 @@
   let floatingSearchEnabled = true;
   let currentWindowId = null;
   let sidePanelHeartbeatsByWindow = {};
+  let sidePanelOpen = false;
+  let sidePanelPresenceSource = 'unknown';
   let lastPanelVisibleState = null;
   let mode = 'icon'; // hidden | icon | panel
   let userDismissed = false;
@@ -384,10 +386,6 @@
 
     createHost();
     bindStorageSync();
-    window.setInterval(() => {
-      const visible = isSidePanelEffectivelyOpen();
-      if (visible !== lastPanelVisibleState) render();
-    }, 1000);
     render();
     flushExtensionContextNotice();
   }
@@ -417,7 +415,9 @@
           mode = 'icon';
         }
       }
-      if (changes.sidePanelHeartbeatsByWindow) sidePanelHeartbeatsByWindow = normalizeSidePanelHeartbeats(changes.sidePanelHeartbeatsByWindow.newValue);
+      if (changes.sidePanelHeartbeatsByWindow && sidePanelPresenceSource !== 'sidePanel-event') {
+        sidePanelHeartbeatsByWindow = normalizeSidePanelHeartbeats(changes.sidePanelHeartbeatsByWindow.newValue);
+      }
       Object.entries(changes).forEach(([key, change]) => {
         storageSyncState[key] = cloneStateValue(change.newValue);
       });
@@ -674,8 +674,8 @@
       && !event.metaKey
       && !event.shiftKey
       && !event.repeat
-      ? ({ Digit1: 'open-links', Numpad1: 'open-links', Digit2: 'open-reds', Numpad2: 'open-reds', Digit3: 'open-prompts', Numpad3: 'open-prompts' }[event.code]
-        || ({ '1': 'open-links', '2': 'open-reds', '3': 'open-prompts' }[String(event.key || '')]))
+      ? ({ Digit1: 'open-links', Numpad1: 'open-links', Digit2: 'open-x-search', Numpad2: 'open-x-search', Digit3: 'open-prompts', Numpad3: 'open-prompts' }[event.code]
+        || ({ '1': 'open-links', '2': 'open-x-search', '3': 'open-prompts' }[String(event.key || '')]))
       : '';
     if (directOpenAction) {
       const popupCurrentlyVisible = !!host
@@ -997,6 +997,7 @@
   function executeFloatingShortcutCommand(action, options = {}) {
     const tabByAction = {
       'open-links': 'links',
+      'open-x-search': 'reds',
       'open-reds': 'reds',
       'open-prompts': 'prompts'
     };
@@ -1084,9 +1085,13 @@
 
   async function resolveCurrentWindowState() {
     try {
-      const response = await sendRuntimeMessage({ type: 'quickLinksGetSidePanelWindowState' });
+      const response = await sendRuntimeMessage({
+        type: globalThis.QuickLinksContract?.MESSAGES?.GET_SIDE_PANEL_STATE || 'quickLinksGetSidePanelWindowState'
+      });
       if (response?.ok && typeof response.windowId === 'number') {
         currentWindowId = response.windowId;
+        sidePanelOpen = response.open === true;
+        sidePanelPresenceSource = String(response.source || 'unknown');
         if (Number(response.heartbeat || 0) > 0) {
           sidePanelHeartbeatsByWindow[String(currentWindowId)] = Number(response.heartbeat);
         }
@@ -1096,6 +1101,7 @@
 
   function isSidePanelEffectivelyOpen() {
     if (typeof currentWindowId !== 'number') return false;
+    if (sidePanelPresenceSource === 'sidePanel-event') return sidePanelOpen;
     const heartbeat = Number(sidePanelHeartbeatsByWindow[String(currentWindowId)] || 0);
     return !!heartbeat && (Date.now() - heartbeat) < SIDE_PANEL_HEARTBEAT_TTL_MS;
   }
@@ -4050,10 +4056,22 @@
   const runtimeForMessages = getChromeRuntime();
   if (runtimeForMessages?.onMessage) {
     runtimeForMessages.onMessage.addListener((message, _sender, sendResponse) => {
-      if (!message || message.type !== 'quickLinksFloatingShortcut') return;
+      const Contract = globalThis.QuickLinksContract;
+      if (message?.type === (Contract?.MESSAGES?.SIDE_PANEL_PRESENCE_CHANGED || 'quickLinksSidePanelPresenceChanged')) {
+        if (typeof message.windowId === 'number' && typeof currentWindowId === 'number' && message.windowId !== currentWindowId) return;
+        const before = isSidePanelEffectivelyOpen();
+        sidePanelOpen = message.open === true;
+        sidePanelPresenceSource = 'sidePanel-event';
+        if (before !== sidePanelOpen || sidePanelOpen !== lastPanelVisibleState) render();
+        sendResponse?.({ ok: true });
+        return false;
+      }
+
+      if (!message || message.type !== (Contract?.MESSAGES?.FLOATING_SHORTCUT || 'quickLinksFloatingShortcut')) return;
       if (typeof message.windowId === 'number' && typeof currentWindowId === 'number' && message.windowId !== currentWindowId) return;
       const handled = executeFloatingShortcutCommand(String(message.action || ''), { explicitUserAction: true });
       sendResponse({ ok: handled, mode, activeTab });
+      return false;
     });
   }
 
