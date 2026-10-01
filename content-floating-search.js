@@ -650,18 +650,18 @@
       && (event.code === code || String(event.key || '').toLowerCase() === key);
   }
 
-  async function routeRedsSearchToSidepanelOrFallback(searchType) {
+  async function routeRedsSearchToSidepanelOrFallback() {
     try {
       const response = await sendRuntimeMessage({
         type: 'quickLinksSidepanelShortcut',
-        action: searchType === 'x' ? 'search-x' : 'search-site',
+        action: 'search-x',
         windowId: currentWindowId
       });
       if (response?.ok) return true;
     } catch (_) {}
 
-    // サイドパネルの状態判定が古い場合でも、ショートカットを無反応にしない。
-    return runFloatingRedsSearchShortcut(searchType);
+    // サイドパネルの状態判定が古い場合でも、X検索ショートカットを無反応にしない。
+    return runFloatingRedsSearchShortcut();
   }
 
   function handleFloatingKeyboardShortcut(event) {
@@ -705,7 +705,7 @@
         if (isClearShortcut) routeClearSearchToSidepanelOrFallback();
         else if (isProjectFilterShortcut) routeSearchProjectFilterToSidepanelOrFallback();
         else if (isSortShortcut) routeSortToSidepanelOrFallback();
-        else routeRedsSearchToSidepanelOrFallback('x');
+        else routeRedsSearchToSidepanelOrFallback();
       }
       return;
     }
