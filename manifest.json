@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.16.0",
-  "description": "Links / X検索 / Promptを共通のキーボード操作で扱い、Alt+Shift+MでLog Relayを開閉",
+  "version": "1.17.0",
+  "description": "Links / X検索 / Prompt / Log Relayを、共通の操作契約と軽いUIで扱う",
   "permissions": [
     "sidePanel",
     "storage",
@@ -44,6 +44,7 @@
         "https://*/*"
       ],
       "js": [
+        "app-contract.js",
         "log-relay-content-command-guard.js",
         "shortcut-registry.js",
         "auto-project-rules.js",
