@@ -2586,16 +2586,12 @@ function setupEventListeners() {
     }
 
     const altLetter = altLetterKey;
-    const isSiteSearchShortcut = e.code === 'KeyS' || altLetter === 's';
     const isXSearchShortcut = e.code === 'KeyX' || altLetter === 'x';
-    if ((isSiteSearchShortcut || isXSearchShortcut) && !e.repeat) {
+    if (isXSearchShortcut && !e.repeat) {
       e.preventDefault();
       e.stopPropagation();
       if (sidePanelMode !== 'reds') setSidepanelMode('reds');
-      window.setTimeout(() => {
-        if (isXSearchShortcut) runRedsXSearchSidepanel();
-        else runRedsGoogleSearchSidepanel();
-      }, 0);
+      window.setTimeout(() => runRedsXSearchSidepanel(), 0);
       return;
     }
 
@@ -3002,7 +2998,7 @@ function normalizeString(str) {
   return s;
 }
 
-// --- Reds検索機能 ---
+// --- X検索機能 ---
 function setupRedsSearchFeature() {
   const redsSearch = document.getElementById('reds-search');
   const redsDateStartInput = document.getElementById('reds-date-start');
@@ -3027,7 +3023,7 @@ function setupRedsSearchFeature() {
   redsSearch.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      runRedsGoogleSearchSidepanel();
+      runRedsXSearchSidepanel();
     }
   });
   redsDateStartInput.addEventListener('input', (e) => {
@@ -3036,16 +3032,12 @@ function setupRedsSearchFeature() {
   redsDateEndInput.addEventListener('input', (e) => {
     redsDateEnd = e.target.value || '';
   });
-  document.querySelectorAll('[data-reds-range]').forEach(btn => {
-    btn.addEventListener('click', () => applyRedsQuickDateSidepanel(btn.getAttribute('data-reds-range')));
-  });
   document.getElementById('reds-date-clear')?.addEventListener('click', () => {
     redsDateStart = '';
     redsDateEnd = '';
     redsDateStartInput.value = '';
     redsDateEndInput.value = '';
   });
-  document.getElementById('reds-google')?.addEventListener('click', runRedsGoogleSearchSidepanel);
   document.getElementById('reds-x')?.addEventListener('click', runRedsXSearchSidepanel);
 }
 
@@ -3099,36 +3091,18 @@ function addDaysToDateInputSidepanel(value, days = 1) {
   return formatDateInputValueSidepanel(date);
 }
 
-function buildRedsGoogleUrlSidepanel() {
-  const query = String(redsQuery || '').trim();
-  if (!query) return '';
-  let fullQuery = `${query} site:urawa-reds.co.jp`;
-  if (redsDateStart) fullQuery += ` after:${redsDateStart}`;
-  if (redsDateEnd) fullQuery += ` before:${addDaysToDateInputSidepanel(redsDateEnd, 1)}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(fullQuery)}`;
-}
-
 function buildRedsXUrlSidepanel() {
-  const Core = globalThis.QuickLinksRedsXSearchCore;
+  const Core = globalThis.QuickLinksXSearchCore;
+  if (!Core?.buildXSearchUrl) return '';
 
-  if (Core?.buildXSearchUrl) {
-    const accountInput = document.getElementById('reds-x-account');
+  const advanced = globalThis.QuickLinksXSearchSidepanel;
+  if (advanced?.buildUrl) return advanced.buildUrl();
 
-    return Core.buildXSearchUrl({
-      keyword: redsQuery,
-      account: accountInput ? accountInput.value : Core.DEFAULT_X_ACCOUNT,
-      start: redsDateStart,
-      end: redsDateEnd
-    });
-  }
-
-  // Keep the mature v1.15.6 behavior available only if the core has not loaded yet.
-  const query = String(redsQuery || '').trim();
-  if (!query) return '';
-  let xQuery = `${query} from:REDSOFFICIAL`;
-  if (redsDateStart) xQuery += ` since:${redsDateStart}`;
-  if (redsDateEnd) xQuery += ` until:${addDaysToDateInputSidepanel(redsDateEnd, 1)}`;
-  return `https://x.com/search?q=${encodeURIComponent(xQuery)}&f=live`;
+  return Core.buildXSearchUrl({
+    allWords: redsQuery,
+    start: redsDateStart,
+    end: redsDateEnd
+  });
 }
 
 async function openUrlFromSidepanel(url, options = {}) {
@@ -3215,15 +3189,6 @@ async function copyLinkFromSidepanel(url, button) {
     button.disabled = false;
     alert('リンクをコピーできませんでした。');
   }
-}
-
-function runRedsGoogleSearchSidepanel() {
-  const url = buildRedsGoogleUrlSidepanel();
-  if (!url) {
-    document.getElementById('reds-search')?.focus();
-    return;
-  }
-  openUrlFromSidepanel(url);
 }
 
 function runRedsXSearchSidepanel() {
@@ -3369,12 +3334,9 @@ if (runtimeForSidepanelMessages?.onMessage) {
     sendResponse?.({ ok: true });
     return false;
   }
-  if (message.action === 'search-site' || message.action === 'search-x') {
+  if (message.action === 'search-x') {
     setSidepanelMode('reds');
-    window.setTimeout(() => {
-      if (message.action === 'search-x') runRedsXSearchSidepanel();
-      else runRedsGoogleSearchSidepanel();
-    }, 0);
+    window.setTimeout(() => runRedsXSearchSidepanel(), 0);
     sendResponse?.({ ok: true });
     return false;
   }
