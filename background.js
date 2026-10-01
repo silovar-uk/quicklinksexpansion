@@ -606,35 +606,35 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message && message.type === 'quickLinksEnsureAutoProjectRules') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.ENSURE_AUTO_PROJECT_RULES) {
     ensureAutoProjectRules()
       .then(rules => sendResponse({ ok: true, rules }))
       .catch(error => sendResponse({ ok: false, error: String(error), rules: [] }));
     return true;
   }
 
-  if (message && message.type === 'quickLinksCommitState') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.COMMIT_STATE) {
     commitStorageState(message.payload)
       .then(updates => sendResponse({ ok: true, updates }))
       .catch(error => sendResponse({ ok: false, error: String(error), updates: {} }));
     return true;
   }
 
-  if (message && message.type === 'quickLinksRecordItemClick') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.RECORD_ITEM_CLICK) {
     recordItemClickAtomic(message.id)
       .then(result => sendResponse({ ok: true, ...result }))
       .catch(error => sendResponse({ ok: false, error: error?.message || String(error) }));
     return true;
   }
 
-  if (message && message.type === 'quickLinksRecordPromptCopy') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.RECORD_PROMPT_COPY) {
     recordPromptCopyAtomic(message.id)
       .then(result => sendResponse({ ok: true, ...result }))
       .catch(error => sendResponse({ ok: false, error: error?.message || String(error) }));
     return true;
   }
 
-  if (message && message.type === 'quickLinksGetCurrentWindowId') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.GET_CURRENT_WINDOW_ID) {
     (async () => {
       try {
         const currentWindow = await chrome.windows.getLastFocused();
@@ -648,7 +648,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message && message.type === 'quickLinksResolveUrl' && message.url) {
+  if (message && message.type === APP_CONTRACT.MESSAGES.RESOLVE_URL && message.url) {
     try {
       const resolvedUrl = resolveQuickLinksDynamicUrl(message.url);
       if (!resolvedUrl) throw new Error('未対応の動的リンクです。');
@@ -660,7 +660,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message && message.type === 'quickLinksOpenTab' && message.url) {
+  if (message && message.type === APP_CONTRACT.MESSAGES.OPEN_TAB && message.url) {
     (async () => {
       try {
         const resolvedUrl = resolveQuickLinksDynamicUrl(message.url);
@@ -713,7 +713,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message && message.type === 'quickLinksOpenSidePanel') {
+  if (message && message.type === APP_CONTRACT.MESSAGES.OPEN_SIDE_PANEL) {
     (async () => {
       try {
         let windowId = sender.tab && sender.tab.windowId;
