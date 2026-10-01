@@ -113,17 +113,19 @@ jobs:
             exit 1
           fi
 
-          for required in interaction-core.js interaction-bridge.js; do
+          for required in app-contract.js interaction-core.js interaction-bridge.js side-panel-presence-background.js ui-context-background.js ui-context-sidepanel.js; do
             if ! grep -Fxq "$required" <<< "$entries"; then
               echo "$required is missing from ZIP root." >&2
               exit 1
             fi
           done
 
-          if grep -Fxq 'prompt-shortcut-focus.js' <<< "$entries"; then
-            echo 'Retired prompt-shortcut-focus.js must not ship.' >&2
-            exit 1
-          fi
+          for retired in prompt-shortcut-focus.js reds-x-search-core.js reds-x-search-polish.js; do
+            if grep -Fxq "$retired" <<< "$entries"; then
+              echo "Retired runtime file must not ship: $retired" >&2
+              exit 1
+            fi
+          done
 
           rm -rf "$verify_dir"
           mkdir -p "$verify_dir"
@@ -149,18 +151,46 @@ jobs:
           }
 
           const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
+          const contractIndex = scripts.indexOf('app-contract.js');
           const coreIndex = scripts.indexOf('interaction-core.js');
           const bridgeIndex = scripts.indexOf('interaction-bridge.js');
+          const xCoreIndex = scripts.indexOf('x-search-core.js');
           const floatingIndex = scripts.indexOf('content-floating-search.js');
-          if (coreIndex < 0 || bridgeIndex <= coreIndex || floatingIndex <= bridgeIndex) {
-            console.error('Packaged interaction runtime load order is invalid.');
+          if (
+            contractIndex < 0
+            || coreIndex <= contractIndex
+            || bridgeIndex <= coreIndex
+            || xCoreIndex <= bridgeIndex
+            || floatingIndex <= xCoreIndex
+          ) {
+            console.error('Packaged shared runtime load order is invalid.');
             process.exit(1);
           }
-          if (scripts.includes('prompt-shortcut-focus.js')) {
-            console.error('Packaged manifest still references retired prompt-shortcut-focus.js.');
-            process.exit(1);
+
+          for (const retired of ['prompt-shortcut-focus.js', 'reds-x-search-core.js', 'reds-x-search-polish.js']) {
+            if (scripts.includes(retired) || fs.existsSync(path.join(root, retired))) {
+              console.error(`Retired runtime file still ships: ${retired}`);
+              process.exit(1);
+            }
           }
-          console.log(`Validated ${new Set(refs).size} packaged manifest references and interaction load order.`);
+
+          const backgroundWrapper = fs.readFileSync(path.join(root, 'background-wrapper.js'), 'utf8');
+          for (const required of ['app-contract.js', 'side-panel-presence-background.js', 'ui-context-background.js', 'background.js']) {
+            if (!backgroundWrapper.includes(required)) {
+              console.error(`Packaged background wrapper is missing ${required}.`);
+              process.exit(1);
+            }
+          }
+
+          const sidepanelWrapper = fs.readFileSync(path.join(root, 'sidepanel-wrapper.js'), 'utf8');
+          for (const required of ['app-contract.js', 'x-search-core.js', 'ui-context-sidepanel.js', 'interaction-core.js', 'interaction-bridge.js']) {
+            if (!sidepanelWrapper.includes(required)) {
+              console.error(`Packaged sidepanel wrapper is missing ${required}.`);
+              process.exit(1);
+            }
+          }
+
+          console.log(`Validated ${new Set(refs).size} packaged manifest references and v1.17 runtime composition.`);
           NODE
 
           echo 'Packaged runtime contract is valid.'

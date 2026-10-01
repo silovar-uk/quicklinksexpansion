@@ -47,7 +47,7 @@ let redsQuery = '';
 let redsDateStart = '';
 let redsDateEnd = '';
 let sidePanelMode = 'links';
-let sidePanelHeartbeatTimer = null;
+let legacySidePanelHeartbeatTimer = null;
 let sidePanelWindowId = null;
 let projectPickerQuery = '';
 let filterExpanded = false;
@@ -166,8 +166,7 @@ async function commitLocalState(keys, options = {}) {
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_HEAT_CLICKS = 15;
-const SIDE_PANEL_HEARTBEAT_INTERVAL_MS = 1000;
-const SIDE_PANEL_HEARTBEAT_STORAGE_KEY = 'sidePanelHeartbeatsByWindow';
+const LEGACY_LEGACY_SIDE_PANEL_HEARTBEAT_INTERVAL_MS = 1000;
 const TOP_PROJECT_FILTER_LIMIT = 6;
 
 // カラープリセット
@@ -306,10 +305,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const floatingCb = document.getElementById('check-floating-search-enabled');
   if (floatingCb) floatingCb.checked = floatingSearchEnabled;
 
-  await startSidePanelHeartbeat();
-  window.addEventListener('beforeunload', () => stopSidePanelHeartbeat(true));
-  window.addEventListener('unload', () => stopSidePanelHeartbeat(true));
-  window.addEventListener('pagehide', () => stopSidePanelHeartbeat(true));
+  await startSidePanelPresenceReporting();
+  window.addEventListener('pagehide', () => stopLegacySidePanelHeartbeat(true));
 
   renderList();
   setupEventListeners();
@@ -974,12 +971,6 @@ function getProjectColor(name) {
   if (projectColors[name]) {
     return projectColors[name];
   }
-  
-  // 既存ユーザー向け：クラブ発信のデフォルトカラー強制適用
-  if (name === 'クラブ発信') {
-    return { bg: '#fef2f2', text: '#991b1b', border: '#E03E3E' };
-  }
-
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -2908,22 +2899,34 @@ async function resolveSidePanelWindowId() {
   return null;
 }
 
-async function startSidePanelHeartbeat() {
-  stopSidePanelHeartbeat(false);
-  await resolveSidePanelWindowId();
-  pushSidePanelHeartbeat();
-  sidePanelHeartbeatTimer = window.setInterval(pushSidePanelHeartbeat, SIDE_PANEL_HEARTBEAT_INTERVAL_MS);
+function needsLegacySidePanelHeartbeat() {
+  return !(
+    chrome.sidePanel?.onOpened?.addListener
+    && chrome.sidePanel?.onClosed?.addListener
+  );
 }
 
-function stopSidePanelHeartbeat(clearWindowState = true) {
-  if (sidePanelHeartbeatTimer) {
-    window.clearInterval(sidePanelHeartbeatTimer);
-    sidePanelHeartbeatTimer = null;
+async function startSidePanelPresenceReporting() {
+  await resolveSidePanelWindowId();
+  if (!needsLegacySidePanelHeartbeat()) return;
+  stopLegacySidePanelHeartbeat(false);
+  pushLegacySidePanelHeartbeat();
+  legacySidePanelHeartbeatTimer = window.setInterval(
+    pushLegacySidePanelHeartbeat,
+    LEGACY_SIDE_PANEL_HEARTBEAT_INTERVAL_MS
+  );
+}
+
+function stopLegacySidePanelHeartbeat(clearWindowState = true) {
+  if (legacySidePanelHeartbeatTimer) {
+    window.clearInterval(legacySidePanelHeartbeatTimer);
+    legacySidePanelHeartbeatTimer = null;
   }
+  if (!needsLegacySidePanelHeartbeat()) return;
   if (clearWindowState && typeof sidePanelWindowId === 'number') {
     try {
       void sendRuntimeMessage({
-        type: 'quickLinksSidePanelHeartbeat',
+        type: globalThis.QuickLinksContract?.MESSAGES?.LEGACY_SIDE_PANEL_HEARTBEAT || 'quickLinksSidePanelHeartbeat',
         windowId: sidePanelWindowId,
         visible: false
       }).catch(() => {});
@@ -2931,18 +2934,18 @@ function stopSidePanelHeartbeat(clearWindowState = true) {
   }
 }
 
-function pushSidePanelHeartbeat() {
-  if (typeof sidePanelWindowId !== 'number') return;
+function pushLegacySidePanelHeartbeat() {
+  if (!needsLegacySidePanelHeartbeat() || typeof sidePanelWindowId !== 'number') return;
   try {
     void sendRuntimeMessage({
-      type: 'quickLinksSidePanelHeartbeat',
+      type: globalThis.QuickLinksContract?.MESSAGES?.LEGACY_SIDE_PANEL_HEARTBEAT || 'quickLinksSidePanelHeartbeat',
       windowId: sidePanelWindowId,
       visible: true
     }).catch(error => {
-      console.warn('Failed to update side panel heartbeat', error);
+      console.warn('Failed to update legacy side panel heartbeat', error);
     });
   } catch (error) {
-    console.warn('Failed to update side panel heartbeat', error);
+    console.warn('Failed to update legacy side panel heartbeat', error);
   }
 }
 
@@ -3046,49 +3049,6 @@ function formatDateInputValueSidepanel(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function applyRedsQuickDateSidepanel(rangeType) {
-  const now = new Date();
-  const start = new Date(now);
-  const oneYearAgo = new Date(now);
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  if (rangeType === 'today') {
-    redsDateStart = formatDateInputValueSidepanel(now);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'yesterday') {
-    start.setDate(now.getDate() - 1);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(start);
-  } else if (rangeType === 'week') {
-    start.setDate(now.getDate() - 7);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'month') {
-    start.setDate(now.getDate() - 30);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'year') {
-    redsDateStart = formatDateInputValueSidepanel(oneYearAgo);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'older') {
-    redsDateStart = '';
-    redsDateEnd = formatDateInputValueSidepanel(oneYearAgo);
-  }
-
-  const startInput = document.getElementById('reds-date-start');
-  const endInput = document.getElementById('reds-date-end');
-  if (startInput) startInput.value = redsDateStart;
-  if (endInput) endInput.value = redsDateEnd;
-}
-
-function addDaysToDateInputSidepanel(value, days = 1) {
-  if (!value) return '';
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  date.setDate(date.getDate() + days);
-  return formatDateInputValueSidepanel(date);
 }
 
 function buildRedsXUrlSidepanel() {
@@ -3318,6 +3278,62 @@ function setSidepanelMode(mode) {
 }
 
 
+function applySidepanelUiContext(rawContext = {}) {
+  const Contract = globalThis.QuickLinksContract;
+  const context = Contract?.normalizeUiContext
+    ? Contract.normalizeUiContext(rawContext)
+    : rawContext;
+  const canonicalMode = Contract?.canonicalMode?.(context.mode) || context.mode || 'links';
+  const domMode = Contract?.domModeKey?.(canonicalMode)
+    || (canonicalMode === 'x-search' ? 'reds' : canonicalMode);
+
+  setSharedSearchQuery(context.query || '', { persist: true, render: false });
+
+  if (canonicalMode === 'links') {
+    if (context.projectFilter && (context.projectFilter === 'ALL' || projects.includes(context.projectFilter))) {
+      searchProjectFilter = context.projectFilter;
+    }
+  }
+  if (canonicalMode === 'prompts') {
+    if (context.promptCategory && (context.promptCategory === 'ALL' || promptCategories.includes(context.promptCategory))) {
+      promptCategoryFilter = context.promptCategory;
+    }
+  }
+
+  setSidepanelMode(domMode);
+  renderFilters();
+  renderList();
+  renderPromptMemos();
+  syncSharedSearchInputs();
+
+  if (context.selectedId) {
+    window.setTimeout(() => {
+      const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(context.selectedId) : context.selectedId;
+      const target = canonicalMode === 'links'
+        ? document.querySelector(`.link-item[data-id="${escaped}"] .item-title`)
+        : (canonicalMode === 'prompts'
+          ? document.querySelector(`[data-prompt-copy="${escaped}"]`)
+          : null);
+      target?.focus?.({ preventScroll: false });
+      target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    }, 0);
+  }
+
+  return { mode: canonicalMode, query: context.query || '' };
+}
+
+globalThis.QuickLinksSidepanelApi = Object.freeze({
+  applyUiContext: applySidepanelUiContext,
+  setMode(mode) {
+    const Contract = globalThis.QuickLinksContract;
+    const domMode = Contract?.domModeKey?.(mode) || (mode === 'x-search' ? 'reds' : mode);
+    setSidepanelMode(domMode);
+  },
+  setSearchQuery(query) {
+    setSharedSearchQuery(query || '');
+  }
+});
+
 const runtimeForSidepanelMessages = getRuntimeApi();
 if (runtimeForSidepanelMessages?.onMessage) {
   runtimeForSidepanelMessages.onMessage.addListener((message, _sender, sendResponse) => {
@@ -3325,6 +3341,7 @@ if (runtimeForSidepanelMessages?.onMessage) {
   if (typeof message.windowId === 'number' && typeof sidePanelWindowId === 'number' && message.windowId !== sidePanelWindowId) return;
   const modeByAction = {
     'open-links': 'links',
+    'open-x-search': 'reds',
     'open-reds': 'reds',
     'open-prompts': 'prompts'
   };

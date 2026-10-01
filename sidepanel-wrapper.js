@@ -30,8 +30,10 @@
       document.body.appendChild(script);
     });
 
+    await loadScript('app-contract.js');
     await loadScript('x-search-core.js');
     await loadScript('x-search-sidepanel.js');
+    await loadScript('ui-context-sidepanel.js');
     await loadScript('shortcut-registry.js');
     await loadScript('interaction-core.js');
     await loadScript('interaction-bridge.js');

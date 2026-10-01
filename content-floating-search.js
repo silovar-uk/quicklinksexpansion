@@ -21,6 +21,8 @@
   let floatingSearchEnabled = true;
   let currentWindowId = null;
   let sidePanelHeartbeatsByWindow = {};
+  let sidePanelOpen = false;
+  let sidePanelPresenceSource = 'unknown';
   let lastPanelVisibleState = null;
   let mode = 'icon'; // hidden | icon | panel
   let userDismissed = false;
@@ -384,10 +386,6 @@
 
     createHost();
     bindStorageSync();
-    window.setInterval(() => {
-      const visible = isSidePanelEffectivelyOpen();
-      if (visible !== lastPanelVisibleState) render();
-    }, 1000);
     render();
     flushExtensionContextNotice();
   }
@@ -417,7 +415,9 @@
           mode = 'icon';
         }
       }
-      if (changes.sidePanelHeartbeatsByWindow) sidePanelHeartbeatsByWindow = normalizeSidePanelHeartbeats(changes.sidePanelHeartbeatsByWindow.newValue);
+      if (changes.sidePanelHeartbeatsByWindow && sidePanelPresenceSource !== 'sidePanel-event') {
+        sidePanelHeartbeatsByWindow = normalizeSidePanelHeartbeats(changes.sidePanelHeartbeatsByWindow.newValue);
+      }
       Object.entries(changes).forEach(([key, change]) => {
         storageSyncState[key] = cloneStateValue(change.newValue);
       });
@@ -674,8 +674,8 @@
       && !event.metaKey
       && !event.shiftKey
       && !event.repeat
-      ? ({ Digit1: 'open-links', Numpad1: 'open-links', Digit2: 'open-reds', Numpad2: 'open-reds', Digit3: 'open-prompts', Numpad3: 'open-prompts' }[event.code]
-        || ({ '1': 'open-links', '2': 'open-reds', '3': 'open-prompts' }[String(event.key || '')]))
+      ? ({ Digit1: 'open-links', Numpad1: 'open-links', Digit2: 'open-x-search', Numpad2: 'open-x-search', Digit3: 'open-prompts', Numpad3: 'open-prompts' }[event.code]
+        || ({ '1': 'open-links', '2': 'open-x-search', '3': 'open-prompts' }[String(event.key || '')]))
       : '';
     if (directOpenAction) {
       const popupCurrentlyVisible = !!host
@@ -997,6 +997,7 @@
   function executeFloatingShortcutCommand(action, options = {}) {
     const tabByAction = {
       'open-links': 'links',
+      'open-x-search': 'reds',
       'open-reds': 'reds',
       'open-prompts': 'prompts'
     };
@@ -1084,9 +1085,13 @@
 
   async function resolveCurrentWindowState() {
     try {
-      const response = await sendRuntimeMessage({ type: 'quickLinksGetSidePanelWindowState' });
+      const response = await sendRuntimeMessage({
+        type: globalThis.QuickLinksContract?.MESSAGES?.GET_SIDE_PANEL_STATE || 'quickLinksGetSidePanelWindowState'
+      });
       if (response?.ok && typeof response.windowId === 'number') {
         currentWindowId = response.windowId;
+        sidePanelOpen = response.open === true;
+        sidePanelPresenceSource = String(response.source || 'unknown');
         if (Number(response.heartbeat || 0) > 0) {
           sidePanelHeartbeatsByWindow[String(currentWindowId)] = Number(response.heartbeat);
         }
@@ -1096,6 +1101,7 @@
 
   function isSidePanelEffectivelyOpen() {
     if (typeof currentWindowId !== 'number') return false;
+    if (sidePanelPresenceSource === 'sidePanel-event') return sidePanelOpen;
     const heartbeat = Number(sidePanelHeartbeatsByWindow[String(currentWindowId)] || 0);
     return !!heartbeat && (Date.now() - heartbeat) < SIDE_PANEL_HEARTBEAT_TTL_MS;
   }
@@ -2036,6 +2042,71 @@
         .ql-btn-primary:hover { background: #1d4ed8; }
         .ql-btn-primary:disabled { opacity: .68; cursor: wait; background: #64748b; }
         .ql-btn-danger:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+        
+        /* v1.17 — Floating POP is a launcher, not a miniature branded app. */
+        .ql-icon-btn,
+        .ql-icon-btn:hover {
+          background: #111827;
+        }
+        .ql-panel {
+          background: #f8fafc;
+          border-color: #dbe3ec;
+        }
+        .ql-header,
+        .ql-modal-header,
+        .ql-edit-header {
+          background: #111827;
+          background-image: none;
+          box-shadow: none;
+        }
+        .ql-body {
+          background: #f8fafc;
+        }
+        .ql-tabs {
+          gap: 4px;
+          padding: 4px;
+          background: #eef2f6;
+          border: 1px solid #dbe3ec;
+          border-radius: 12px;
+        }
+        .ql-tab-btn#ql-tab-links,
+        .ql-tab-btn#ql-tab-reds,
+        .ql-tab-btn#ql-tab-prompts {
+          background: transparent;
+          border-color: transparent;
+          color: #64748b;
+        }
+        .ql-tab-btn.active-links,
+        .ql-tab-btn.active-reds,
+        .ql-tab-btn.active-prompts {
+          background: #ffffff !important;
+          border-color: #cbd5e1 !important;
+          color: #0f172a !important;
+          box-shadow: 0 1px 2px rgba(15,23,42,.07) !important;
+        }
+        .ql-tab-btn.active-links .ql-key,
+        .ql-tab-btn.active-reds .ql-key,
+        .ql-tab-btn.active-prompts .ql-key {
+          background: #f8fafc;
+          color: #64748b;
+          border-color: #cbd5e1;
+        }
+        .ql-modal-mode-switch {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+        }
+        .ql-modal-mode-btn {
+          color: #475569;
+        }
+        .ql-modal-mode-btn.active {
+          background: #111827;
+          color: #fff;
+          box-shadow: none;
+        }
+        .ql-panel-open-btn {
+          background: rgba(255,255,255,.14);
+        }
+
 
         /* v1.12.5: POPの展開・縮小は即時切り替え */
         .ql-wrap, .ql-panel, .ql-launcher {
@@ -2233,6 +2304,41 @@
           box-shadow: 0 10px 22px rgba(15,23,42,.26);
         }
 
+
+        /* v1.17 final cascade: neutral shell + one consistent active state. */
+        .ql-launcher .ql-icon-btn,
+        .ql-launcher .ql-icon-btn:hover,
+        .ql-launcher .ql-icon-btn:focus-visible {
+          background: #111827;
+        }
+        .ql-panel { background:#f8fafc; border-color:#dbe3ec; }
+        .ql-header,
+        .ql-modal-header,
+        .ql-edit-header { background:#111827; background-image:none; }
+        .ql-body { background:#f8fafc; }
+        .ql-tabs { gap:4px; padding:4px; background:#eef2f6; border:1px solid #dbe3ec; border-radius:12px; }
+        .ql-tab-btn#ql-tab-links,
+        .ql-tab-btn#ql-tab-reds,
+        .ql-tab-btn#ql-tab-prompts {
+          background:transparent;
+          border-color:transparent;
+          color:#64748b;
+        }
+        .ql-tab-btn.active-links,
+        .ql-tab-btn.active-reds,
+        .ql-tab-btn.active-prompts {
+          background:#fff!important;
+          border-color:#cbd5e1!important;
+          color:#0f172a!important;
+          box-shadow:0 1px 2px rgba(15,23,42,.07)!important;
+        }
+        .ql-tab-btn.active-links .ql-key,
+        .ql-tab-btn.active-reds .ql-key,
+        .ql-tab-btn.active-prompts .ql-key {
+          background:#f8fafc;
+          color:#64748b;
+          border-color:#cbd5e1;
+        }
       </style>
       <div class="ql-wrap">
         ${floatingNotice && !addDraft && !promptDraft && !editingItem ? `<div class="ql-toast ${floatingNotice.type === 'warning' ? 'warning' : (floatingNotice.type === 'success' ? 'success' : '')}" role="status" aria-live="polite">${escapeHtml(floatingNotice.message)}</div>` : ''}
@@ -2256,7 +2362,7 @@
                 <div class="ql-title">Quick Links 検索</div>
               </div>
               <div class="ql-header-actions">
-                <button class="ql-panel-open-btn" id="ql-open-sidepanel" title="サイドパネルを開く" aria-label="サイドパネルを開く">
+                <button class="ql-panel-open-btn" id="ql-open-sidepanel" title="サイドパネルで続きを開く" aria-label="サイドパネルで続きを開く">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="4" width="18" height="16" rx="2"></rect>
                     <path d="M9 4v16"></path>
@@ -3821,9 +3927,6 @@
       return { bg: '#f3f4f6', text: '#4b5563', border: '#e5e7eb' };
     }
     if (projectColors[name]) return projectColors[name];
-    if (name === 'クラブ発信') {
-      return { bg: '#fef2f2', text: '#991b1b', border: '#E03E3E' };
-    }
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -3937,9 +4040,26 @@
     }
   }
 
+  function buildFloatingUiContext() {
+    const Contract = globalThis.QuickLinksContract;
+    const mode = activeTab === 'reds' ? 'x-search' : activeTab;
+    return Contract?.normalizeUiContext
+      ? Contract.normalizeUiContext({
+          mode,
+          query: sharedSearchQuery,
+          projectFilter: activeTab === 'links' ? searchProjectFilter : '',
+          promptCategory: activeTab === 'prompts' ? promptCategoryFilter : ''
+        })
+      : { mode, query: sharedSearchQuery };
+  }
+
   async function openSidePanel() {
     try {
-      const response = await sendRuntimeMessage({ type: 'quickLinksOpenSidePanel' });
+      const Contract = globalThis.QuickLinksContract;
+      const response = await sendRuntimeMessage({
+        type: Contract?.MESSAGES?.HANDOFF_TO_SIDE_PANEL || 'quickLinksHandoffToSidePanel',
+        context: buildFloatingUiContext()
+      });
       if (!response?.ok) throw new Error(response?.error || 'サイドパネルを開けませんでした。');
     } catch (error) {
       if (isExtensionContextError(error)) markExtensionContextUnavailable(error);
@@ -3952,45 +4072,6 @@
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
-  }
-
-  function applyRedsQuickDate(rangeType) {
-    const now = new Date();
-    const start = new Date(now);
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-    if (rangeType === 'today') {
-      redsDateStart = formatDateInputValue(now);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'yesterday') {
-      start.setDate(now.getDate() - 1);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(start);
-    } else if (rangeType === 'week') {
-      start.setDate(now.getDate() - 7);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'month') {
-      start.setDate(now.getDate() - 30);
-      redsDateStart = formatDateInputValue(start);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'year') {
-      redsDateStart = formatDateInputValue(oneYearAgo);
-      redsDateEnd = formatDateInputValue(now);
-    } else if (rangeType === 'older') {
-      redsDateStart = '';
-      redsDateEnd = formatDateInputValue(oneYearAgo);
-    }
-    render();
-  }
-
-  function addDaysToDateInput(value, days = 1) {
-    if (!value) return '';
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return value;
-    date.setDate(date.getDate() + days);
-    return formatDateInputValue(date);
   }
 
   function collectFloatingXInput() {
@@ -4050,10 +4131,22 @@
   const runtimeForMessages = getChromeRuntime();
   if (runtimeForMessages?.onMessage) {
     runtimeForMessages.onMessage.addListener((message, _sender, sendResponse) => {
-      if (!message || message.type !== 'quickLinksFloatingShortcut') return;
+      const Contract = globalThis.QuickLinksContract;
+      if (message?.type === (Contract?.MESSAGES?.SIDE_PANEL_PRESENCE_CHANGED || 'quickLinksSidePanelPresenceChanged')) {
+        if (typeof message.windowId === 'number' && typeof currentWindowId === 'number' && message.windowId !== currentWindowId) return;
+        const before = isSidePanelEffectivelyOpen();
+        sidePanelOpen = message.open === true;
+        sidePanelPresenceSource = 'sidePanel-event';
+        if (before !== sidePanelOpen || sidePanelOpen !== lastPanelVisibleState) render();
+        sendResponse?.({ ok: true });
+        return false;
+      }
+
+      if (!message || message.type !== (Contract?.MESSAGES?.FLOATING_SHORTCUT || 'quickLinksFloatingShortcut')) return;
       if (typeof message.windowId === 'number' && typeof currentWindowId === 'number' && message.windowId !== currentWindowId) return;
       const handled = executeFloatingShortcutCommand(String(message.action || ''), { explicitUserAction: true });
       sendResponse({ ok: handled, mode, activeTab });
+      return false;
     });
   }
 

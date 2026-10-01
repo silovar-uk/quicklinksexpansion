@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  const Contract = globalThis.QuickLinksContract
+    || (typeof require === 'function' ? require('./app-contract.js') : null);
+
   const ACTIONS = Object.freeze({
     SELECT_PRIMARY: 'SELECT_PRIMARY',
     MOVE_PRIMARY_PREV: 'MOVE_PRIMARY_PREV',
@@ -10,12 +13,14 @@
   const PRIMARY_ROLE_BY_MODE = Object.freeze({
     links: 'link',
     prompts: 'prompt',
-    reds: 'search',
+    'x-search': 'search',
     log: 'log'
   });
 
   function normalizeMode(mode) {
+    if (Contract?.canonicalMode) return Contract.canonicalMode(mode);
     const value = String(mode || '').toLowerCase();
+    if (value === 'reds') return 'x-search';
     return Object.prototype.hasOwnProperty.call(PRIMARY_ROLE_BY_MODE, value) ? value : '';
   }
 

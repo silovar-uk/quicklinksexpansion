@@ -104,33 +104,9 @@
     "enabled": true
   },
   {
-    "id": "rule-urawa-official",
-    "keyword": "www.urawa-reds.co.jp",
-    "projectName": "クラブ発信",
-    "matchType": "contains",
-    "caseSensitive": false,
-    "enabled": true
-  },
-  {
-    "id": "rule-rexclub",
-    "keyword": "rexclub.urawa-reds.co.jp",
-    "projectName": "クラブ発信",
-    "matchType": "contains",
-    "caseSensitive": false,
-    "enabled": true
-  },
-  {
     "id": "rule-jleague",
     "keyword": "jleague.jp",
-    "projectName": "クラブ発信",
-    "matchType": "contains",
-    "caseSensitive": false,
-    "enabled": true
-  },
-  {
-    "id": "rule-urawa-demo",
-    "keyword": "urawa-demo.sb-factory.com",
-    "projectName": "一時保存",
+    "projectName": "スポーツ",
     "matchType": "contains",
     "caseSensitive": false,
     "enabled": true

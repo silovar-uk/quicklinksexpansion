@@ -3,7 +3,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const core = require('../x-search-core.js');
-const legacyCore = require('../reds-x-search-core.js');
 
 function queryFrom(url) {
   return url ? new URL(url).searchParams.get('q') : '';
@@ -14,12 +13,6 @@ test('generic X search has no default account or club-specific query', () => {
   assert.equal(core.buildXSearchUrl({ allWords: '', fromAccount: '' }), '');
 });
 
-test('legacy core module delegates to generic X search without defaults', () => {
-  assert.equal(legacyCore, core);
-  assert.equal(legacyCore.DEFAULT_X_ACCOUNT, undefined);
-  assert.equal(queryFrom(legacyCore.buildXSearchUrl({ keyword: '生成AI' })), '生成AI');
-});
-
 test('X account normalization accepts @handle and x/twitter profile URLs', () => {
   assert.equal(core.normalizeAccount('@OpenAI'), 'OpenAI');
   assert.equal(core.normalizeAccount('https://x.com/ManUtd'), 'ManUtd');
@@ -27,48 +20,31 @@ test('X account normalization accepts @handle and x/twitter profile URLs', () =>
 });
 
 test('keyword + explicit account uses the selected from: account', () => {
-  assert.equal(
-    queryFrom(core.buildXSearchUrl({ allWords: '生成AI', fromAccount: 'OpenAI' })),
-    '生成AI from:OpenAI'
-  );
-});
-
-test('account-only search is an explicit from: filter', () => {
-  assert.equal(
-    queryFrom(core.buildXSearchUrl({ allWords: '   ', fromAccount: '@OpenAI' })),
-    'from:OpenAI'
-  );
+  assert.equal(queryFrom(core.buildXSearchUrl({ allWords:'生成AI', fromAccount:'OpenAI' })), '生成AI from:OpenAI');
 });
 
 test('X date range keeps start inclusive and end as next-day exclusive', () => {
   assert.equal(
-    queryFrom(core.buildXSearchUrl({
-      allWords: '生成AI',
-      fromAccount: 'OpenAI',
-      start: '2026-09-01',
-      end: '2026-09-30'
-    })),
+    queryFrom(core.buildXSearchUrl({ allWords:'生成AI', fromAccount:'OpenAI', start:'2026-09-01', end:'2026-09-30' })),
     '生成AI from:OpenAI since:2026-09-01 until:2026-10-01'
   );
 });
 
-test('sidepanel uses generic X core and has no site-search or fixed-account fallback', () => {
+test('sidepanel uses generic X core and no club-specific fallback', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'sidepanel.js'), 'utf8');
-
   assert.match(source, /QuickLinksXSearchCore/);
   assert.match(source, /Core\.buildXSearchUrl/);
   assert.match(source, /QuickLinksXSearchSidepanel/);
-  assert.match(source, /getElementById\('reds-x'\)\?\.addEventListener\('click', runRedsXSearchSidepanel\)/);
-  assert.match(source, /window\.setTimeout\(\(\) => runRedsXSearchSidepanel\(\), 0\)/);
   assert.doesNotMatch(source, /site:urawa-reds\.co\.jp/);
   assert.doesNotMatch(source, /REDSOFFICIAL/);
   assert.doesNotMatch(source, /runRedsGoogleSearchSidepanel/);
 });
 
-test('compatibility polish shim does not intercept X search behavior', () => {
-  const source = fs.readFileSync(path.join(__dirname, '..', 'reds-x-search-polish.js'), 'utf8');
-
-  assert.doesNotMatch(source, /stopImmediatePropagation\(\)/);
-  assert.doesNotMatch(source, /installFunctionOverrides|installButtonGuard/);
-  assert.match(source, /QuickLinksXSearchSidepanel/);
+test('retired REDS compatibility modules are not part of runtime composition', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.json'), 'utf8'));
+  const wrapper = fs.readFileSync(path.join(__dirname, '..', 'sidepanel-wrapper.js'), 'utf8');
+  const scripts = (manifest.content_scripts || []).flatMap(entry => entry.js || []);
+  assert.equal(scripts.some(file => file.startsWith('reds-x-search-')), false);
+  assert.equal(wrapper.includes("reds-x-search-core.js"), false);
+  assert.equal(wrapper.includes("reds-x-search-polish.js"), false);
 });

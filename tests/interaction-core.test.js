@@ -59,13 +59,13 @@ function makeSidepanel(mode, counts = {}) {
 
   const links = Array.from({ length: counts.links || 0 }, () => makeElement(doc));
   const prompts = Array.from({ length: counts.prompts || 0 }, () => makeElement(doc));
-  const reds = Array.from({ length: counts.reds ?? 1 }, () => makeElement(doc));
+  const xSearch = Array.from({ length: counts.xSearch ?? counts.reds ?? 1 }, () => makeElement(doc));
   const logs = Array.from({ length: counts.logs || 0 }, () => makeElement(doc));
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.links, links);
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.prompts, prompts);
-  doc._selectorMap.set(Bridge.SELECTORS.sidepanel.reds, reds);
+  doc._selectorMap.set(Bridge.SELECTORS.sidepanel['x-search'], xSearch);
   doc._selectorMap.set(Bridge.SELECTORS.sidepanel.log, logs);
-  return { doc, links, prompts, reds, logs };
+  return { doc, links, prompts, xSearch, reds: xSearch, logs };
 }
 
 function makeFloating(mode, counts = {}) {
@@ -99,11 +99,11 @@ function makeFloating(mode, counts = {}) {
 
   const links = Array.from({ length: counts.links || 0 }, () => makeElement(root));
   const prompts = Array.from({ length: counts.prompts || 0 }, () => makeElement(root));
-  const reds = Array.from({ length: counts.reds ?? 1 }, () => makeElement(root));
+  const xSearch = Array.from({ length: counts.xSearch ?? counts.reds ?? 1 }, () => makeElement(root));
   root._selectorMap.set(Bridge.SELECTORS.floating.links, links);
   root._selectorMap.set(Bridge.SELECTORS.floating.prompts, prompts);
-  root._selectorMap.set(Bridge.SELECTORS.floating.reds, reds);
-  return { doc, root, links, prompts, reds };
+  root._selectorMap.set(Bridge.SELECTORS.floating['x-search'], xSearch);
+  return { doc, root, links, prompts, xSearch, reds: xSearch };
 }
 
 function keyEvent(overrides = {}) {
@@ -136,6 +136,7 @@ test('interaction core maps Alt+Q to SELECT_PRIMARY only for plain Alt', () => {
 test('primary role is mode-driven instead of Links-hardcoded', () => {
   assert.equal(Core.getPrimaryRole('links'), 'link');
   assert.equal(Core.getPrimaryRole('prompts'), 'prompt');
+  assert.equal(Core.getPrimaryRole('x-search'), 'search');
   assert.equal(Core.getPrimaryRole('reds'), 'search');
   assert.equal(Core.getPrimaryRole('log'), 'log');
   assert.equal(Core.getPrimaryRole('unknown'), '');
@@ -185,12 +186,12 @@ test('Prompt ArrowDown moves between Prompt primary actions after Alt+Q', () => 
   assert.equal(doc.activeElement, prompts[1]);
 });
 
-test('REDS Alt+Q focuses the current mode search instead of switching to Links', () => {
-  const { doc, reds } = makeSidepanel('reds', { reds: 1 });
+test('X Search Alt+Q focuses the current mode search instead of switching to Links', () => {
+  const { doc, xSearch } = makeSidepanel('reds', { xSearch: 1 });
   const event = keyEvent();
   assert.equal(Bridge.handleKeyboardEvent(event, doc), true);
-  assert.equal(doc.activeElement, reds[0]);
-  assert.equal(Bridge.sidepanelMode(doc), 'reds');
+  assert.equal(doc.activeElement, xSearch[0]);
+  assert.equal(Bridge.sidepanelMode(doc), 'x-search');
 });
 
 test('LOG Alt+Q prefers Log Relay over stale Links mode and ArrowDown moves rows', () => {

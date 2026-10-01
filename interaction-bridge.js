@@ -1,7 +1,10 @@
 (() => {
   'use strict';
 
-  const Core = globalThis.QuickLinksInteractionCore;
+  const Contract = globalThis.QuickLinksContract
+    || (typeof require === 'function' ? require('./app-contract.js') : null);
+  const Core = globalThis.QuickLinksInteractionCore
+    || (typeof require === 'function' ? require('./interaction-core.js') : null);
   if (!Core) {
     console.warn('[Quick Links] interaction-core.js must load before interaction-bridge.js');
     return;
@@ -14,13 +17,13 @@
     sidepanel: Object.freeze({
       links: '#link-list .link-item .item-title',
       prompts: '#prompt-list .prompt-card [data-prompt-copy]',
-      reds: '#reds-search',
+      'x-search': '#reds-search',
       log: '#log-relay-root .lr-list [data-lr-id] .lr-row-check'
     }),
     floating: Object.freeze({
       links: '#ql-list [data-open-url]',
       prompts: '#ql-prompt-list .ql-prompt-card [data-prompt-copy]',
-      reds: '#ql-reds-query'
+      'x-search': '#ql-reds-query'
     })
   });
 
@@ -30,15 +33,20 @@
     return element.getClientRects().length > 0;
   }
 
+  function canonicalMode(value) {
+    return Contract?.canonicalMode ? Contract.canonicalMode(value) : Core.normalizeMode(value);
+  }
+
   function sidepanelMode(doc) {
     const body = doc?.body;
     if (!body) return '';
     if (body.classList?.contains?.('log-relay-active') || doc.getElementById?.('log-relay-mode')?.classList?.contains?.('active')) {
       return 'log';
     }
-    for (const mode of ['links', 'prompts', 'reds']) {
-      if (body.classList?.contains?.(`mode-${mode}`)) return mode;
-      if (doc.getElementById?.(`mode-${mode}`)?.classList?.contains?.('active')) return mode;
+    for (const domKey of ['links', 'prompts', 'reds']) {
+      if (body.classList?.contains?.(`mode-${domKey}`) || doc.getElementById?.(`mode-${domKey}`)?.classList?.contains?.('active')) {
+        return canonicalMode(domKey);
+      }
     }
     return '';
   }
@@ -48,7 +56,7 @@
     const activeByPane = {
       links: '#ql-pane-links.active',
       prompts: '#ql-pane-prompts.active',
-      reds: '#ql-pane-reds.active'
+      'x-search': '#ql-pane-reds.active'
     };
     for (const [mode, selector] of Object.entries(activeByPane)) {
       if (root.querySelector?.(selector)) return mode;
@@ -58,29 +66,17 @@
 
   function detectInteractionContext(doc) {
     const mode = sidepanelMode(doc);
-    if (mode) {
-      return {
-        surface: 'sidepanel',
-        mode,
-        root: doc,
-        doc
-      };
-    }
+    if (mode) return { surface: 'sidepanel', mode, root: doc, doc };
 
     const host = doc?.getElementById?.('quick-links-floating-host');
     const root = host?.shadowRoot;
     const popupMode = floatingMode(root);
     if (!root || !popupMode) return null;
-    return {
-      surface: 'floating',
-      mode: popupMode,
-      root,
-      doc
-    };
+    return { surface: 'floating', mode: popupMode, root, doc };
   }
 
   function getPrimarySelector(context) {
-    return SELECTORS[context?.surface]?.[Core.normalizeMode(context?.mode)] || '';
+    return SELECTORS[context?.surface]?.[canonicalMode(context?.mode)] || '';
   }
 
   function getPrimaryTargets(context) {
@@ -121,11 +117,8 @@
     if (!target) return false;
     ensureFocusStyle(context);
     target.setAttribute?.(PRIMARY_ATTR, 'true');
-    try {
-      target.focus({ preventScroll: true });
-    } catch (_) {
-      target.focus?.();
-    }
+    try { target.focus({ preventScroll: true }); }
+    catch (_) { target.focus?.(); }
     target.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     return true;
   }
@@ -167,8 +160,6 @@
     if (!context) return false;
 
     if (action === Core.ACTIONS.SELECT_PRIMARY) {
-      // Consume SELECT_PRIMARY for every recognized mode even when the list is empty.
-      // This prevents mature legacy handlers from falling through and changing modes.
       consume(event);
       focusPrimary(context);
       return true;
