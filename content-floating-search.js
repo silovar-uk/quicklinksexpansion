@@ -2042,6 +2042,71 @@
         .ql-btn-primary:hover { background: #1d4ed8; }
         .ql-btn-primary:disabled { opacity: .68; cursor: wait; background: #64748b; }
         .ql-btn-danger:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+        
+        /* v1.17 — Floating POP is a launcher, not a miniature branded app. */
+        .ql-icon-btn,
+        .ql-icon-btn:hover {
+          background: #111827;
+        }
+        .ql-panel {
+          background: #f8fafc;
+          border-color: #dbe3ec;
+        }
+        .ql-header,
+        .ql-modal-header,
+        .ql-edit-header {
+          background: #111827;
+          background-image: none;
+          box-shadow: none;
+        }
+        .ql-body {
+          background: #f8fafc;
+        }
+        .ql-tabs {
+          gap: 4px;
+          padding: 4px;
+          background: #eef2f6;
+          border: 1px solid #dbe3ec;
+          border-radius: 12px;
+        }
+        .ql-tab-btn#ql-tab-links,
+        .ql-tab-btn#ql-tab-reds,
+        .ql-tab-btn#ql-tab-prompts {
+          background: transparent;
+          border-color: transparent;
+          color: #64748b;
+        }
+        .ql-tab-btn.active-links,
+        .ql-tab-btn.active-reds,
+        .ql-tab-btn.active-prompts {
+          background: #ffffff !important;
+          border-color: #cbd5e1 !important;
+          color: #0f172a !important;
+          box-shadow: 0 1px 2px rgba(15,23,42,.07) !important;
+        }
+        .ql-tab-btn.active-links .ql-key,
+        .ql-tab-btn.active-reds .ql-key,
+        .ql-tab-btn.active-prompts .ql-key {
+          background: #f8fafc;
+          color: #64748b;
+          border-color: #cbd5e1;
+        }
+        .ql-modal-mode-switch {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+        }
+        .ql-modal-mode-btn {
+          color: #475569;
+        }
+        .ql-modal-mode-btn.active {
+          background: #111827;
+          color: #fff;
+          box-shadow: none;
+        }
+        .ql-panel-open-btn {
+          background: rgba(255,255,255,.14);
+        }
+
 
         /* v1.12.5: POPの展開・縮小は即時切り替え */
         .ql-wrap, .ql-panel, .ql-launcher {
