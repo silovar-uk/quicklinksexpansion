@@ -3057,49 +3057,6 @@ function formatDateInputValueSidepanel(date) {
   return `${y}-${m}-${d}`;
 }
 
-function applyRedsQuickDateSidepanel(rangeType) {
-  const now = new Date();
-  const start = new Date(now);
-  const oneYearAgo = new Date(now);
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  if (rangeType === 'today') {
-    redsDateStart = formatDateInputValueSidepanel(now);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'yesterday') {
-    start.setDate(now.getDate() - 1);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(start);
-  } else if (rangeType === 'week') {
-    start.setDate(now.getDate() - 7);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'month') {
-    start.setDate(now.getDate() - 30);
-    redsDateStart = formatDateInputValueSidepanel(start);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'year') {
-    redsDateStart = formatDateInputValueSidepanel(oneYearAgo);
-    redsDateEnd = formatDateInputValueSidepanel(now);
-  } else if (rangeType === 'older') {
-    redsDateStart = '';
-    redsDateEnd = formatDateInputValueSidepanel(oneYearAgo);
-  }
-
-  const startInput = document.getElementById('reds-date-start');
-  const endInput = document.getElementById('reds-date-end');
-  if (startInput) startInput.value = redsDateStart;
-  if (endInput) endInput.value = redsDateEnd;
-}
-
-function addDaysToDateInputSidepanel(value, days = 1) {
-  if (!value) return '';
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  date.setDate(date.getDate() + days);
-  return formatDateInputValueSidepanel(date);
-}
-
 function buildRedsXUrlSidepanel() {
   const Core = globalThis.QuickLinksXSearchCore;
   if (!Core?.buildXSearchUrl) return '';
@@ -3327,6 +3284,62 @@ function setSidepanelMode(mode) {
 }
 
 
+function applySidepanelUiContext(rawContext = {}) {
+  const Contract = globalThis.QuickLinksContract;
+  const context = Contract?.normalizeUiContext
+    ? Contract.normalizeUiContext(rawContext)
+    : rawContext;
+  const canonicalMode = Contract?.canonicalMode?.(context.mode) || context.mode || 'links';
+  const domMode = Contract?.domModeKey?.(canonicalMode)
+    || (canonicalMode === 'x-search' ? 'reds' : canonicalMode);
+
+  setSharedSearchQuery(context.query || '', { persist: true, render: false });
+
+  if (canonicalMode === 'links') {
+    if (context.projectFilter && (context.projectFilter === 'ALL' || projects.includes(context.projectFilter))) {
+      searchProjectFilter = context.projectFilter;
+    }
+  }
+  if (canonicalMode === 'prompts') {
+    if (context.promptCategory && (context.promptCategory === 'ALL' || promptCategories.includes(context.promptCategory))) {
+      promptCategoryFilter = context.promptCategory;
+    }
+  }
+
+  setSidepanelMode(domMode);
+  renderFilters();
+  renderList();
+  renderPromptMemos();
+  syncSharedSearchInputs();
+
+  if (context.selectedId) {
+    window.setTimeout(() => {
+      const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(context.selectedId) : context.selectedId;
+      const target = canonicalMode === 'links'
+        ? document.querySelector(`.link-item[data-id="${escaped}"] .item-title`)
+        : (canonicalMode === 'prompts'
+          ? document.querySelector(`[data-prompt-copy="${escaped}"]`)
+          : null);
+      target?.focus?.({ preventScroll: false });
+      target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    }, 0);
+  }
+
+  return { mode: canonicalMode, query: context.query || '' };
+}
+
+globalThis.QuickLinksSidepanelApi = Object.freeze({
+  applyUiContext: applySidepanelUiContext,
+  setMode(mode) {
+    const Contract = globalThis.QuickLinksContract;
+    const domMode = Contract?.domModeKey?.(mode) || (mode === 'x-search' ? 'reds' : mode);
+    setSidepanelMode(domMode);
+  },
+  setSearchQuery(query) {
+    setSharedSearchQuery(query || '');
+  }
+});
+
 const runtimeForSidepanelMessages = getRuntimeApi();
 if (runtimeForSidepanelMessages?.onMessage) {
   runtimeForSidepanelMessages.onMessage.addListener((message, _sender, sendResponse) => {
@@ -3334,6 +3347,7 @@ if (runtimeForSidepanelMessages?.onMessage) {
   if (typeof message.windowId === 'number' && typeof sidePanelWindowId === 'number' && message.windowId !== sidePanelWindowId) return;
   const modeByAction = {
     'open-links': 'links',
+    'open-x-search': 'reds',
     'open-reds': 'reds',
     'open-prompts': 'prompts'
   };
