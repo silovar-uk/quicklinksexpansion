@@ -47,7 +47,7 @@ let redsQuery = '';
 let redsDateStart = '';
 let redsDateEnd = '';
 let sidePanelMode = 'links';
-let sidePanelHeartbeatTimer = null;
+let legacySidePanelHeartbeatTimer = null;
 let sidePanelWindowId = null;
 let projectPickerQuery = '';
 let filterExpanded = false;
@@ -166,8 +166,7 @@ async function commitLocalState(keys, options = {}) {
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_HEAT_CLICKS = 15;
-const SIDE_PANEL_HEARTBEAT_INTERVAL_MS = 1000;
-const SIDE_PANEL_HEARTBEAT_STORAGE_KEY = 'sidePanelHeartbeatsByWindow';
+const LEGACY_LEGACY_SIDE_PANEL_HEARTBEAT_INTERVAL_MS = 1000;
 const TOP_PROJECT_FILTER_LIMIT = 6;
 
 // カラープリセット
@@ -306,10 +305,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const floatingCb = document.getElementById('check-floating-search-enabled');
   if (floatingCb) floatingCb.checked = floatingSearchEnabled;
 
-  await startSidePanelHeartbeat();
-  window.addEventListener('beforeunload', () => stopSidePanelHeartbeat(true));
-  window.addEventListener('unload', () => stopSidePanelHeartbeat(true));
-  window.addEventListener('pagehide', () => stopSidePanelHeartbeat(true));
+  await startSidePanelPresenceReporting();
+  window.addEventListener('pagehide', () => stopLegacySidePanelHeartbeat(true));
 
   renderList();
   setupEventListeners();
@@ -2908,22 +2905,34 @@ async function resolveSidePanelWindowId() {
   return null;
 }
 
-async function startSidePanelHeartbeat() {
-  stopSidePanelHeartbeat(false);
-  await resolveSidePanelWindowId();
-  pushSidePanelHeartbeat();
-  sidePanelHeartbeatTimer = window.setInterval(pushSidePanelHeartbeat, SIDE_PANEL_HEARTBEAT_INTERVAL_MS);
+function needsLegacySidePanelHeartbeat() {
+  return !(
+    chrome.sidePanel?.onOpened?.addListener
+    && chrome.sidePanel?.onClosed?.addListener
+  );
 }
 
-function stopSidePanelHeartbeat(clearWindowState = true) {
-  if (sidePanelHeartbeatTimer) {
-    window.clearInterval(sidePanelHeartbeatTimer);
-    sidePanelHeartbeatTimer = null;
+async function startSidePanelPresenceReporting() {
+  await resolveSidePanelWindowId();
+  if (!needsLegacySidePanelHeartbeat()) return;
+  stopLegacySidePanelHeartbeat(false);
+  pushLegacySidePanelHeartbeat();
+  legacySidePanelHeartbeatTimer = window.setInterval(
+    pushLegacySidePanelHeartbeat,
+    LEGACY_SIDE_PANEL_HEARTBEAT_INTERVAL_MS
+  );
+}
+
+function stopLegacySidePanelHeartbeat(clearWindowState = true) {
+  if (legacySidePanelHeartbeatTimer) {
+    window.clearInterval(legacySidePanelHeartbeatTimer);
+    legacySidePanelHeartbeatTimer = null;
   }
+  if (!needsLegacySidePanelHeartbeat()) return;
   if (clearWindowState && typeof sidePanelWindowId === 'number') {
     try {
       void sendRuntimeMessage({
-        type: 'quickLinksSidePanelHeartbeat',
+        type: globalThis.QuickLinksContract?.MESSAGES?.LEGACY_SIDE_PANEL_HEARTBEAT || 'quickLinksSidePanelHeartbeat',
         windowId: sidePanelWindowId,
         visible: false
       }).catch(() => {});
@@ -2931,18 +2940,18 @@ function stopSidePanelHeartbeat(clearWindowState = true) {
   }
 }
 
-function pushSidePanelHeartbeat() {
-  if (typeof sidePanelWindowId !== 'number') return;
+function pushLegacySidePanelHeartbeat() {
+  if (!needsLegacySidePanelHeartbeat() || typeof sidePanelWindowId !== 'number') return;
   try {
     void sendRuntimeMessage({
-      type: 'quickLinksSidePanelHeartbeat',
+      type: globalThis.QuickLinksContract?.MESSAGES?.LEGACY_SIDE_PANEL_HEARTBEAT || 'quickLinksSidePanelHeartbeat',
       windowId: sidePanelWindowId,
       visible: true
     }).catch(error => {
-      console.warn('Failed to update side panel heartbeat', error);
+      console.warn('Failed to update legacy side panel heartbeat', error);
     });
   } catch (error) {
-    console.warn('Failed to update side panel heartbeat', error);
+    console.warn('Failed to update legacy side panel heartbeat', error);
   }
 }
 
