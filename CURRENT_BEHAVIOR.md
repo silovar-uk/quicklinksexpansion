@@ -1,6 +1,6 @@
 # Quick Project Links — Current Behavior Contract
 
-Baseline: **v1.15.10**  
+Baseline: **v1.16.0**  
 Updated: **2026-08-25**  
 Purpose: preserve user-visible behavior while the codebase is reorganized.
 
@@ -16,20 +16,20 @@ This is a characterization contract. If a refactor changes one of these behavior
 ## Main modes
 
 1. Links
-2. REDS
+2. X Search
 3. Prompt
 4. LOG / Log Relay
 
 ## Canonical shortcuts and interaction behavior
 
 - `Alt + 1`: open Links.
-- `Alt + 2`: open REDS.
+- `Alt + 2`: open X Search.
 - `Alt + 3`: open Prompt.
 - `Alt + 4`: clear shared search and focus the current mode search field through the existing mature routing.
 - `Alt + Q`: select the primary target of the **current mode without switching modes**.
   - Links -> first visible Link.
   - Prompt -> first visible Prompt copy action.
-  - REDS -> REDS search field.
+  - X Search -> X search field.
   - LOG -> first visible Log Relay row checkbox.
 - After a Links / Prompt / LOG primary list target is focused, `ArrowUp` / `ArrowDown` move to the previous / next primary target and stop at the list edge.
 - Empty lists are safe no-ops for `Alt+Q`; they must not fall through and switch to Links.
@@ -44,23 +44,21 @@ Chrome user-gesture-sensitive actions may still require handlers in more than on
 
 ## Shared search
 
-- Links / REDS / Prompt participate in shared-search state.
+- Links / X Search / Prompt participate in shared-search state.
 - State uses `sharedSearchQuery` and `sharedSearchState` revision metadata.
 - Search automatically clears after three minutes from the latest edit.
 - An older writer state must not overwrite a newer one.
 
-## REDS / X search
+## X search
 
-- Default X account: `REDSOFFICIAL`.
-- Account is editable.
+- No club-specific default account, site, keyword or preset is applied.
+- Plain keyword search works without opening advanced filters.
+- Advanced filters support exact phrase, OR terms, exclusions, hashtags, from/to/mention accounts, language and start/end dates.
 - `@handle`, `x.com/handle` and `twitter.com/handle` forms normalize to the handle.
-- Keyword + account -> live X query using `keyword from:account`.
-- Keyword only -> keyword search.
-- Account only -> search the account name itself.
-- Both blank -> no search URL.
 - Start date is inclusive with `since:`.
 - End date uses the following calendar day for exclusive `until:`.
-- Button / Enter / Alt+X / runtime paths must reach the same effective behavior.
+- Query Mirror shows a natural-language interpretation plus the generated X query before execution.
+- Button / Enter / Alt+X / runtime paths reach the same X-search behavior.
 
 ## Links and URL normalization
 
