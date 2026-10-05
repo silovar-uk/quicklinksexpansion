@@ -1,7 +1,7 @@
 # Quick Project Links — Interaction Contract
 
-Baseline: **v1.17.0**  
-Updated: **2026-10-01**
+Baseline: **v1.17.1**  
+Updated: **2026-10-05**
 
 ## Principle
 
@@ -64,6 +64,19 @@ The handoff preserves:
 - Prompt category filter when relevant.
 
 Transient handoff data uses `storage.session` and expires quickly.
+
+## Escape / dismissal ladder
+
+Within the Floating POP, plain `Esc` means **go back one UI layer**, not **disappear completely**.
+
+1. Close the top add/edit overlay when one is open.
+2. Otherwise close the expanded Links project-filter menu when it is open.
+3. Otherwise collapse the expanded POP to the small launcher.
+4. When already collapsed to the launcher, plain `Esc` does nothing.
+
+Full hide remains an explicit action (`Alt+5` or the dedicated close control). After a collapse, focus returns to the launcher so keyboard users retain a visible and operable continuation point.
+
+This behavior is scoped to the Floating POP. Do not steal a page-level `Esc` when the POP does not own interaction scope.
 
 ## Focus
 
