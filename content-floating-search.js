@@ -824,9 +824,17 @@
       }
     }
 
-    if (event.key === 'Escape' && !event.altKey && !event.shiftKey && noCommandModifier && hasOverlay) {
+    if (event.key === 'Escape' && noModifier) {
       consumeFloatingShortcut(event);
-      closeTopFloatingOverlay();
+
+      // Escは「1段戻る」。最上位の編集UIを閉じ、次に補助メニュー、
+      // 最後にPOP本体をランチャーへ畳む。完全非表示はAlt+5へ残す。
+      if (closeTopFloatingOverlay()) return;
+      if (searchProjectFilterExpanded) {
+        closeFloatingSearchProjectFilterMenu({ focusCompact: false });
+        return;
+      }
+      collapseFloatingPanel();
     }
   }
 
@@ -1036,6 +1044,13 @@
     mode = 'icon';
     shortcutScopeActive = false;
     render();
+
+    // 畳んだあとにフォーカスを失わせない。縮小後の再開地点はランチャー。
+    window.setTimeout(() => {
+      const launcher = shadow?.getElementById('ql-open-panel');
+      if (!launcher) return;
+      try { launcher.focus({ preventScroll: true }); } catch (_) { launcher.focus(); }
+    }, 0);
   }
 
   function closeFloatingPanel() {
@@ -2369,7 +2384,7 @@
                   </svg>
                 </button>
                 <button class="ql-header-btn ql-with-shortcut" id="ql-close" title="完全に隠す（Alt+5）"><span aria-hidden="true">×</span><kbd class="ql-key">Alt+5</kbd></button>
-                <button class="ql-header-btn ql-collapse-btn ql-with-shortcut" id="ql-collapse" title="小さくする（Alt+W）"><span aria-hidden="true">−</span><kbd class="ql-key">Alt+W</kbd></button>
+                <button class="ql-header-btn ql-collapse-btn ql-with-shortcut" id="ql-collapse" title="小さくする（Esc / Alt+W）" aria-label="小さくする（Esc / Alt+W）"><span aria-hidden="true">−</span><kbd class="ql-key">Esc</kbd></button>
               </div>
             </div>
             <div class="ql-body">
