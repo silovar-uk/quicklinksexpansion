@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Quick Project Links",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "description": "Links / X検索 / Prompt / Log Relayを、共通の操作契約と軽いUIで扱う",
   "permissions": [
     "sidePanel",
