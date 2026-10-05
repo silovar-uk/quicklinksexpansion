@@ -1,7 +1,7 @@
 # Quick Project Links — Current Behavior
 
-Baseline: **v1.17.0**  
-Updated: **2026-10-01**
+Baseline: **v1.17.1**  
+Updated: **2026-10-05**
 
 This is the behavior contract cleanup/refactor work must preserve unless a change is explicitly requested.
 
@@ -11,6 +11,15 @@ This is the behavior contract cleanup/refactor work must preserve unless a chang
 - Side Panel: workbench for sustained search/edit/manage.
 - Log Relay capture: one-line capture surface.
 - Service Worker: mutation/effect authority.
+
+## Floating POP dismissal
+
+- Plain `Esc` behaves as **one step back** while the Floating POP owns keyboard scope.
+- If an add/edit Prompt or Link overlay is open, `Esc` closes only that top overlay.
+- If the Links project-filter menu is open, `Esc` closes that menu before collapsing the POP.
+- Otherwise `Esc` collapses the expanded POP to the small launcher; it does not fully hide the launcher.
+- After collapsing, keyboard focus moves to the launcher so the interaction has a visible continuation point.
+- `Alt+W` remains a compatible collapse shortcut; `Alt+5` remains the explicit full-hide action.
 
 ## Shared search
 
