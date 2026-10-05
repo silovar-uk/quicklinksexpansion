@@ -41,3 +41,14 @@ test('shared focus tokens are present for keyboard-first UI', () => {
     assert.ok(css.includes(token), `${token} must exist`);
   }
 });
+
+test('Floating POP plain Escape is a one-step-back action and collapse preserves focus', () => {
+  const floating = read('content-floating-search.js');
+
+  assert.ok(floating.includes("if (event.key === 'Escape' && noModifier)"), 'plain Escape must have a Floating POP handler');
+  assert.ok(floating.includes('if (closeTopFloatingOverlay()) return;'), 'Escape must close the top overlay before collapsing');
+  assert.ok(floating.includes('if (searchProjectFilterExpanded) {'), 'Escape must respect the project-filter layer');
+  assert.ok(floating.includes('collapseFloatingPanel();'), 'Escape must collapse the expanded POP when no inner layer remains');
+  assert.ok(floating.includes("shadow?.getElementById('ql-open-panel')"), 'collapse must restore focus to the launcher');
+  assert.ok(floating.includes('小さくする（Esc / Alt+W）'), 'the visible collapse control must surface Esc as the primary hint');
+});
